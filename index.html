@@ -1,0 +1,2600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Neurology OPD voice scribe for structured, editable visit notes.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Doctor WOYZ">
+  <title>Doctor WOYZ</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --panel-soft: #eff6ff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --indigo: #4f46e5;
+      --shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    .dark {
+      color-scheme: dark;
+      --bg: #020617;
+      --panel: #0f172a;
+      --panel-soft: #0b1f45;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --line: #1e293b;
+      --shadow: none;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app.locked {
+      display: none;
+    }
+
+    .approval-gate {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+      background: var(--bg);
+    }
+
+    .approval-gate.hidden {
+      display: none;
+    }
+
+    .approval-card {
+      width: min(100%, 440px);
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .approval-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .approval-brand .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      font-size: 23px;
+    }
+
+    .approval-card h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    .approval-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .approval-field {
+      margin-top: 18px;
+    }
+
+    .approval-field label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .approval-field input {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: var(--bg);
+      font: 600 15px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      text-transform: uppercase;
+      outline: none;
+    }
+
+    .approval-field input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .request-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .request-row button,
+    .approve-button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 7px;
+      color: #ffffff;
+      background: var(--blue);
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .approve-button {
+      width: 100%;
+      margin-top: 18px;
+    }
+
+    .approval-message {
+      min-height: 20px;
+      margin-top: 12px !important;
+      color: #b42318 !important;
+      font-size: 13px !important;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar-inner {
+      max-width: 1100px;
+      min-height: 72px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      padding: 6px;
+    }
+
+    .brand-mark {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #111827, var(--blue));
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
+      color: #ffffff;
+      font-size: 27px;
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 1;
+    }
+
+    .brand-title {
+      font-size: 26px;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: 0;
+      background: linear-gradient(90deg, #1d4ed8, #2563eb, #06b6d4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .new-button {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 10px;
+      color: #ffffff;
+      background: linear-gradient(90deg, var(--blue), var(--indigo));
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
+    }
+
+    .new-button.visible {
+      display: inline-flex;
+    }
+
+    main {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      padding: 32px 20px 24px;
+    }
+
+    .center {
+      width: min(100%, 640px);
+      align-self: center;
+      text-align: center;
+    }
+
+    .intro {
+      margin: 0 auto 28px;
+      max-width: 560px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .card {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: clamp(22px, 4vw, 32px);
+    }
+
+    .card:focus {
+      outline: none;
+    }
+
+    .card.strict {
+      background: color-mix(in srgb, var(--panel) 82%, #dbeafe);
+      border-color: #bfdbfe;
+    }
+
+    .focus-box {
+      position: relative;
+      min-height: 172px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 84%, var(--panel)), var(--panel));
+      margin-bottom: 24px;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+    }
+
+    .focus-inner {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .focus-extend {
+      display: none;
+      margin-top: 2px;
+    }
+
+    .focus-extend.visible {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .waveform-wrap {
+      width: min(100%, 520px);
+      height: 112px;
+      position: relative;
+      overflow: hidden;
+      display: block;
+      padding: 8px 10px;
+      border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--panel) 78%, var(--panel-soft));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38);
+    }
+
+    .waveform-canvas {
+      width: 100%;
+      height: 94px;
+      display: block;
+    }
+
+    .waveform-idle-mark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #111827, var(--blue));
+      color: #ffffff;
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 16px 32px rgba(37, 99, 235, 0.2);
+      transition: opacity 140ms ease, transform 140ms ease;
+      pointer-events: none;
+    }
+
+    .waveform-wrap.active .waveform-idle-mark {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.92);
+    }
+
+    .timer-label {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 72px;
+    }
+
+    .control-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .control-label {
+      display: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .mobile-button-text {
+      display: none;
+    }
+
+    .round {
+      width: 64px;
+      height: 64px;
+      border: 0;
+      border-radius: 999px;
+      color: #ffffff;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+      transition: transform 150ms ease, filter 150ms ease;
+    }
+
+    .round:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.04);
+    }
+
+    .round:active {
+      transform: scale(0.96);
+    }
+
+    .round.record {
+      width: 76px;
+      height: 76px;
+      background: var(--blue);
+    }
+
+    .round.pause {
+      background: #f59e0b;
+    }
+
+    .round.stop {
+      background: #ea580c;
+    }
+
+    .extend-button {
+      min-height: 44px;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      color: var(--blue-dark);
+      background: #eff6ff;
+      padding: 10px 13px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.12);
+      transition: transform 150ms ease, filter 150ms ease;
+    }
+
+    .extend-button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.02);
+    }
+
+    .extend-button.alert {
+      border-color: #f59e0b;
+      color: #92400e;
+      background: #fef3c7;
+      animation: extendBlink 0.9s ease-in-out infinite;
+    }
+
+    @keyframes extendBlink {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+        transform: scale(1.04);
+      }
+    }
+
+    .timer {
+      font: 700 28px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--text);
+    }
+
+    .status {
+      min-height: 26px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .strict-row {
+      margin: 22px auto 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .checkbox {
+      width: 20px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      border-radius: 5px;
+      border: 1px solid #cbd5e1;
+      background: var(--panel);
+    }
+
+    .strict-row.active {
+      color: var(--blue);
+    }
+
+    .strict-row.active .checkbox {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #ffffff;
+    }
+
+    .mode-panel {
+      margin: 22px auto 0;
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+    }
+
+    .mode-toggle {
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      color: var(--blue-dark);
+      background: #eff6ff;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .mode-toggle.active {
+      color: #ffffff;
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+
+    .dictation-options {
+      display: none;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .dictation-options.visible {
+      display: flex;
+    }
+
+    .mode-option {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--panel);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .mode-option.active {
+      color: #ffffff;
+      background: var(--indigo);
+      border-color: var(--indigo);
+    }
+
+    .pills {
+      margin-top: 24px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .settings {
+      position: fixed;
+      left: 24px;
+      bottom: 24px;
+      z-index: 20;
+    }
+
+    .settings-panel {
+      display: none;
+      position: absolute;
+      left: 0;
+      bottom: 48px;
+      width: min(320px, calc(100vw - 32px));
+      padding: 16px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
+      text-align: left;
+    }
+
+    .settings.open .settings-panel {
+      display: block;
+    }
+
+    .settings-title {
+      margin: 0 0 14px;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 0;
+    }
+
+    .api-field {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .api-field label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .api-field input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: var(--bg);
+      font: 500 13px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      outline: none;
+    }
+
+    .key-control {
+      position: relative;
+    }
+
+    .key-control input {
+      padding-right: 44px;
+    }
+
+    .key-visibility {
+      position: absolute;
+      top: 50%;
+      right: 5px;
+      width: 34px;
+      height: 34px;
+      transform: translateY(-50%);
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 7px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .settings-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .settings-actions .save-key {
+      margin-top: 0;
+    }
+
+    .credentials-field {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .credentials-field textarea {
+      width: 100%;
+      min-height: 96px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: var(--bg);
+      font: 500 13px/1.45 Inter, system-ui, sans-serif;
+      outline: none;
+      resize: vertical;
+    }
+
+    .credentials-field textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .remove-key {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: #b42318;
+      background: var(--panel);
+      padding: 11px 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .key-status {
+      min-height: 18px;
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .api-field select {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: var(--bg);
+      font: 600 13px/1.3 Inter, system-ui, sans-serif;
+      outline: none;
+    }
+
+    .api-field input:focus,
+    .api-field select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .save-key {
+      width: 100%;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 10px;
+      color: #ffffff;
+      background: var(--blue);
+      padding: 11px 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .switch {
+      width: 44px;
+      height: 24px;
+      border: 0;
+      border-radius: 999px;
+      padding: 3px;
+      cursor: pointer;
+      background: #cbd5e1;
+      transition: background 150ms ease;
+    }
+
+    .switch span {
+      display: block;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      transition: transform 150ms ease;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+    }
+
+    .switch.on {
+      background: var(--blue);
+    }
+
+    .switch.on span {
+      transform: translateX(20px);
+    }
+
+    .settings-button {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+    }
+
+    .result {
+      width: min(100%, 1040px);
+      display: none;
+    }
+
+    .result.visible {
+      display: block;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .result-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .result-title-icon {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      color: var(--blue);
+      background: #dbeafe;
+    }
+
+    .result-header h2 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0;
+    }
+
+    .result-message {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .result-actions {
+      display: flex;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .result.visible .result-actions {
+      position: fixed;
+      top: 14px;
+      right: max(20px, calc((100vw - 1100px) / 2 + 20px));
+      z-index: 20;
+      align-items: center;
+      max-width: min(52vw, 560px);
+    }
+
+    .copy-button {
+      border: 1px solid #bfdbfe;
+      background: var(--panel);
+      color: var(--blue-dark);
+      border-radius: 10px;
+      padding: 11px 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 5px 14px rgba(37, 99, 235, 0.08);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .dictation-result {
+      display: none;
+    }
+
+    .dictation-result.visible {
+      display: block;
+    }
+
+    .dictation-result textarea {
+      min-height: 300px;
+      resize: vertical;
+    }
+
+    .prescription-result,
+    .certificate-result {
+      display: none;
+    }
+
+    .prescription-result.visible,
+    .certificate-result.visible {
+      display: block;
+    }
+
+    .section {
+      min-width: 0;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+
+    .section.full {
+      grid-column: 1 / -1;
+    }
+
+    .section.diagnosis {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+    }
+
+    .dark .section.diagnosis {
+      background: #0b1f45;
+    }
+
+    .section h3 {
+      margin: 0 0 12px;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .section.diagnosis h3 {
+      color: var(--blue);
+    }
+
+    .section textarea {
+      display: block;
+      width: 100%;
+      min-height: 56px;
+      height: auto;
+      max-height: none;
+      field-sizing: content;
+      overflow-x: hidden;
+      overflow-y: hidden !important;
+      border: 0;
+      border-radius: 6px;
+      padding: 2px;
+      resize: none;
+      color: var(--text);
+      background: transparent;
+      font: inherit;
+      font-size: 15px;
+      line-height: 1.6;
+      outline: none;
+    }
+
+    .section textarea:focus {
+      background: color-mix(in srgb, var(--bg) 70%, transparent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 10%, transparent);
+    }
+
+    .section.diagnosis textarea {
+      color: #1e3a8a;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .dark .section.diagnosis textarea {
+      color: #bfdbfe;
+    }
+
+    .processing {
+      display: none;
+      width: min(100%, 540px);
+      align-self: center;
+    }
+
+    .processing.visible {
+      display: block;
+    }
+
+    .progress {
+      height: 12px;
+      margin-top: 18px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #e2e8f0;
+    }
+
+    .progress span {
+      display: block;
+      width: 42%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--indigo));
+      animation: progress 1.4s ease-in-out infinite alternate;
+    }
+
+    @keyframes progress {
+      from { width: 24%; }
+      to { width: 92%; }
+    }
+
+    @media (max-width: 720px) {
+      .topbar-inner {
+        min-height: 60px;
+        justify-content: flex-start;
+        padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+      }
+
+      .brand {
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        border-radius: 9px;
+        font-size: 23px;
+      }
+
+      .brand-title {
+        font-size: 20px;
+        white-space: nowrap;
+      }
+
+      .new-button {
+        position: static;
+        transform: none;
+        margin-right: auto;
+        padding: 9px 10px;
+      }
+
+      main {
+        padding: 16px 12px calc(82px + env(safe-area-inset-bottom));
+      }
+
+      .intro {
+        margin-bottom: 18px;
+        font-size: 14px;
+      }
+
+      .card {
+        border-radius: 14px;
+        padding: 18px 14px;
+      }
+
+      .focus-box {
+        min-height: 148px;
+        margin-bottom: 18px;
+        padding: 18px;
+      }
+
+      .controls {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        min-height: 72px;
+      }
+
+      .control-item {
+        width: auto;
+        gap: 6px;
+      }
+
+      .control-label {
+        display: none;
+      }
+
+      .mobile-button-text {
+        display: none;
+      }
+
+      .round {
+        width: 64px;
+        height: 64px;
+        min-width: 0;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+      }
+
+      .round.record {
+        width: 76px;
+        height: 76px;
+        border-radius: 999px;
+      }
+
+      .extend-button {
+        min-height: 42px;
+        border-radius: 10px;
+        font-size: 14px;
+      }
+
+      .timer {
+        font-size: 26px;
+      }
+
+      .status {
+        margin-top: 10px;
+        font-size: 13px;
+      }
+
+      .result-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .result-title-icon {
+        width: 40px;
+        height: 40px;
+      }
+
+      .result-header h2 {
+        font-size: 22px;
+      }
+
+      .result-actions {
+        position: static !important;
+        max-width: none !important;
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .copy-button {
+        width: 100%;
+      }
+
+      .result-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .section {
+        padding: 14px;
+        border-radius: 8px;
+      }
+
+      .settings {
+        left: max(12px, env(safe-area-inset-left));
+        bottom: max(12px, env(safe-area-inset-bottom));
+      }
+
+      .settings-panel {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: calc(58px + env(safe-area-inset-bottom));
+        width: auto;
+        max-height: min(620px, calc(100dvh - 90px));
+        overflow-y: auto;
+        border-radius: 8px;
+      }
+    }
+
+    @media (min-width: 721px) and (max-width: 1180px) and (pointer: coarse) {
+      .card.recording-controls {
+        padding-bottom: 116px;
+      }
+
+      .card.recording-controls .focus-box {
+        margin-bottom: 0;
+      }
+
+      .card.recording-controls .controls {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 24px;
+        min-height: 72px;
+        pointer-events: none;
+      }
+
+      .card.recording-controls .control-item {
+        position: absolute;
+        bottom: 0;
+        pointer-events: auto;
+      }
+
+      .card.recording-controls .pause-control {
+        left: 24px;
+      }
+
+      .card.recording-controls .stop-control {
+        right: 24px;
+      }
+
+      .card.recording-controls .round {
+        width: 72px;
+        height: 72px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .approval-card { padding: 22px 18px; }
+      .brand-title { font-size: 18px; }
+      .new-button { font-size: 0; padding: 10px; }
+      .new-button svg { width: 19px; height: 19px; }
+      .card { padding: 16px 12px; }
+      .section textarea { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button class="brand" id="brandButton" type="button" title="New dictation">
+          <span class="brand-mark" aria-hidden="true">
+            W
+          </span>
+          <span class="brand-title">Doctor WOYZ</span>
+        </button>
+        <button class="new-button" id="newButton" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
+          New Scribe
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="center" id="recordView">
+        <p class="intro">Ambient Mode</p>
+        <div class="card" id="recordCard" tabindex="-1">
+          <div class="focus-box" id="focusBox">
+            <div class="focus-inner">
+              <div class="waveform-wrap" aria-hidden="true">
+                <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+                <span class="waveform-idle-mark" id="waveformIdleMark">W</span>
+              </div>
+              <div class="timer-label">Remaining</div>
+              <div class="timer" id="timer">05:00</div>
+              <button class="extend-button focus-extend" id="extendButton" type="button">
+                + Extend 5 min
+              </button>
+            </div>
+          </div>
+          <div class="controls" id="controls">
+            <span class="control-item start-control">
+              <button class="round record" id="recordButton" type="button" title="Start Recording" aria-label="Start Recording">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
+                <span class="mobile-button-text">Start recording</span>
+              </button>
+              <span class="control-label">Start recording</span>
+            </span>
+          </div>
+          <div class="status" id="status">Tap microphone to start dictation</div>
+        </div>
+
+        <div class="mode-panel">
+          <button class="mode-toggle" id="dictationModeToggle" type="button">Dictation Mode</button>
+          <div class="dictation-options" id="dictationOptions">
+            <button class="mode-option active" data-dictation-mode="reviewDictation" type="button">Review Dictation</button>
+            <button class="mode-option" data-dictation-mode="visitDictation" type="button">Visit Note</button>
+            <button class="mode-option" data-dictation-mode="prescription" type="button">Prescription</button>
+            <button class="mode-option" data-dictation-mode="medicalCertificate" type="button">Medical Certificate</button>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="processing card" id="processingView">
+        <h2 style="margin:0 0 6px;">AI Scribe Working</h2>
+        <p id="processingText" style="margin:0; color:var(--muted);">Preparing your visit note...</p>
+        <div class="progress"><span></span></div>
+      </section>
+
+      <section class="result" id="resultView">
+        <div class="result-header">
+          <div class="result-title">
+            <span class="result-title-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h8"></path></svg>
+            </span>
+            <div>
+              <h2 id="resultHeading">Visit Note</h2>
+              <p class="result-message" id="resultMessage"></p>
+            </div>
+          </div>
+          <div class="result-actions" id="visitNoteActions">
+            <button class="copy-button" id="copyWithoutNilButton" type="button">Copy without NIL</button>
+            <button class="copy-button" id="copyButton" type="button">Copy All</button>
+            <button class="copy-button" id="printVisitButton" type="button">Print</button>
+          </div>
+          <div class="result-actions" id="dictationActions" style="display:none;">
+            <button class="copy-button" id="copyDictationButton" type="button">Copy Dictation</button>
+            <button class="copy-button" id="printDictationButton" type="button">Print</button>
+          </div>
+          <div class="result-actions" id="prescriptionActions" style="display:none;">
+            <button class="copy-button" id="copyPrescriptionButton" type="button">Copy Prescription</button>
+            <button class="copy-button" id="printPrescriptionButton" type="button">Print</button>
+          </div>
+          <div class="result-actions" id="certificateActions" style="display:none;">
+            <button class="copy-button" id="copyCertificateButton" type="button">Copy Certificate</button>
+            <button class="copy-button" id="printCertificateButton" type="button">Print</button>
+          </div>
+        </div>
+        <div class="result-grid" id="visitNoteResult">
+          <div class="section patient-detail">
+            <h3>Name</h3>
+            <textarea id="patientName">NIL</textarea>
+          </div>
+          <div class="section patient-detail">
+            <h3>Age</h3>
+            <textarea id="patientAge">NIL</textarea>
+          </div>
+          <div class="section patient-detail">
+            <h3>Sex</h3>
+            <textarea id="patientSex">NIL</textarea>
+          </div>
+          <div class="section patient-detail">
+            <h3>UHID</h3>
+            <textarea id="patientUhid">NIL</textarea>
+          </div>
+          <div class="section full">
+            <h3>1. Presenting Complaint</h3>
+            <textarea id="presentingComplaint">Connect your API to generate this section from the recorded audio.</textarea>
+          </div>
+          <div class="section full">
+            <h3>2. History of Present Illness</h3>
+            <textarea id="historyOfPresentIllness">The generated history of present illness will appear here.</textarea>
+          </div>
+          <div class="section">
+            <h3>3. Past Medical History</h3>
+            <textarea id="pastMedicalHistory">Awaiting generated past medical history.</textarea>
+          </div>
+          <div class="section">
+            <h3>4. Allergies</h3>
+            <textarea id="allergies">NIL</textarea>
+          </div>
+          <div class="section">
+            <h3>5. Family History</h3>
+            <textarea id="familyHistory">NIL</textarea>
+          </div>
+          <div class="section">
+            <h3>6. Personal History</h3>
+            <textarea id="personalHistory">Awaiting generated personal history.</textarea>
+          </div>
+          <div class="section full">
+            <h3>7. Examination Findings</h3>
+            <textarea id="examinationFindings">NIL</textarea>
+          </div>
+          <div class="section full">
+            <h3>8. Review of Investigations</h3>
+            <textarea id="reviewOfInvestigations">NIL</textarea>
+          </div>
+          <div class="section full">
+            <h3>9. Current Medication</h3>
+            <textarea id="currentMedication">NIL</textarea>
+          </div>
+          <div class="section full diagnosis">
+            <h3>10. Provisional Diagnosis</h3>
+            <textarea id="provisionalDiagnosis">Awaiting generated provisional diagnosis.</textarea>
+          </div>
+          <div class="section full">
+            <h3>11. Treatment Plan</h3>
+            <textarea id="treatmentPlan">Awaiting generated treatment plan.</textarea>
+          </div>
+        </div>
+        <div class="dictation-result" id="dictationResult">
+          <div class="section full">
+            <h3>Review Dictation</h3>
+            <textarea id="dictationText" placeholder="Your transcribed review note will appear here."></textarea>
+          </div>
+        </div>
+        <div class="prescription-result" id="prescriptionResult">
+          <div class="result-grid">
+            <div class="section patient-detail">
+              <h3>Date</h3>
+              <textarea id="prescriptionDate">NIL</textarea>
+            </div>
+            <div class="section patient-detail">
+              <h3>Name</h3>
+              <textarea id="prescriptionName">NIL</textarea>
+            </div>
+            <div class="section patient-detail">
+              <h3>Age</h3>
+              <textarea id="prescriptionAge">NIL</textarea>
+            </div>
+            <div class="section patient-detail">
+              <h3>Sex</h3>
+              <textarea id="prescriptionSex">NIL</textarea>
+            </div>
+            <div class="section patient-detail">
+              <h3>UHID</h3>
+              <textarea id="prescriptionUhid">NIL</textarea>
+            </div>
+            <div class="section full">
+              <h3>Medications / Advice</h3>
+              <textarea id="prescriptionMedications">NIL</textarea>
+            </div>
+            <div class="section full">
+              <h3>Doctor Credentials</h3>
+              <textarea id="prescriptionCredentials" placeholder="Add doctor credentials in Settings."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="certificate-result" id="certificateResult">
+          <div class="result-grid">
+            <div class="section patient-detail">
+              <h3>Date</h3>
+              <textarea id="certificateDate">NIL</textarea>
+            </div>
+            <div class="section patient-detail">
+              <h3>Name</h3>
+              <textarea id="certificateName">NIL</textarea>
+            </div>
+            <div class="section patient-detail">
+              <h3>Age</h3>
+              <textarea id="certificateAge">NIL</textarea>
+            </div>
+            <div class="section patient-detail">
+              <h3>Sex</h3>
+              <textarea id="certificateSex">NIL</textarea>
+            </div>
+            <div class="section patient-detail">
+              <h3>UHID</h3>
+              <textarea id="certificateUhid">NIL</textarea>
+            </div>
+            <div class="section full">
+              <h3>Certificate Content</h3>
+              <textarea id="certificateBody" placeholder="The medical certificate content will appear here."></textarea>
+            </div>
+            <div class="section full">
+              <h3>Doctor Credentials</h3>
+              <textarea id="certificateCredentials" placeholder="Add doctor credentials in Settings."></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="settings" id="settings">
+      <div class="settings-panel">
+        <p class="settings-title">Settings</p>
+        <div class="setting-row">
+          <span>Dark Mode</span>
+          <button class="switch" id="darkSwitch" type="button" aria-label="Toggle dark mode"><span></span></button>
+        </div>
+        <div class="api-field">
+          <label for="geminiApiKeyInput">Gemini API Key</label>
+          <div class="key-control">
+            <input id="geminiApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Gemini API key">
+            <button class="key-visibility" id="keyVisibilityButton" type="button" aria-label="Show API key">Show</button>
+          </div>
+          <div class="settings-actions">
+            <button class="save-key" id="saveApiKeyButton" type="button">Save Key</button>
+            <button class="remove-key" id="removeApiKeyButton" type="button">Remove Key</button>
+          </div>
+          <p class="key-status" id="apiKeyStatus">Saved only on this device and sent directly to Google Gemini.</p>
+        </div>
+        <div class="credentials-field">
+          <p class="settings-title">Doctor Credentials</p>
+          <textarea id="doctorCredentialsInput" placeholder="Doctor name&#10;Qualifications&#10;Registration number&#10;Clinic / hospital address"></textarea>
+        </div>
+      </div>
+      <button class="settings-button" id="settingsButton" type="button" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.52a2 2 0 0 1-1 1.72l-.15.1a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.52a2 2 0 0 1 1-1.72l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { generateVisitNoteDirect } from "./gemini-client.js";
+
+    const API_KEY_STORAGE_KEY = "doctor_woyz_gemini_api_key";
+
+    const state = {
+      mediaRecorder: null,
+      stream: null,
+      chunks: [],
+      pendingBlob: null,
+      transcribeOnStop: false,
+      startedAt: 0,
+      elapsed: 0,
+      maxRecordingSeconds: 300,
+      timerId: null,
+      paused: false,
+      inputMode: "ambient",
+      dictationMode: "reviewDictation",
+      resultMode: "ambient",
+      dark: false,
+      audioContext: null,
+      analyser: null,
+      animationId: null,
+      waveformLevel: 0,
+      waveformPhase: 0
+    };
+
+    const recordView = document.getElementById("recordView");
+    const processingView = document.getElementById("processingView");
+    const resultView = document.getElementById("resultView");
+    const recordCard = document.getElementById("recordCard");
+    const focusBox = document.getElementById("focusBox");
+    const controls = document.getElementById("controls");
+    const timer = document.getElementById("timer");
+    const status = document.getElementById("status");
+    const waveformCanvas = document.getElementById("waveformCanvas");
+    const waveformWrap = document.querySelector(".waveform-wrap");
+    const DEFAULT_RECORDING_SECONDS = 300;
+    const EXTEND_SECONDS = 300;
+    function icon(name) {
+      const icons = {
+        pause: '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"></path></svg>',
+        play: '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>',
+        stop: '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>',
+        mic: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>'
+      };
+      return icons[name];
+    }
+
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
+      const rest = Math.floor(seconds % 60).toString().padStart(2, "0");
+      return `${minutes}:${rest}`;
+    }
+
+    function remainingTime() {
+      return Math.max(0, state.maxRecordingSeconds - state.elapsed);
+    }
+
+    function focusKeyboardShortcuts() {
+      if (!recordCard) return;
+      try {
+        recordCard.focus({ preventScroll: true });
+      } catch (error) {
+        recordCard.focus();
+      }
+    }
+
+    function isSpaceKey(event) {
+      return event.code === "Space" || event.key === " " || event.key === "Spacebar";
+    }
+
+    function isEnterKey(event) {
+      return event.key === "Enter" || event.code === "Enter" || event.code === "NumpadEnter";
+    }
+
+    function setView(view) {
+      recordView.style.display = view === "record" ? "block" : "none";
+      processingView.classList.toggle("visible", view === "processing");
+      resultView.classList.toggle("visible", view === "result");
+      document.getElementById("newButton").classList.toggle("visible", view === "result");
+      if (view === "result") scheduleTextareaResize();
+    }
+
+    function getBackendMode() {
+      return state.inputMode === "ambient" ? "ambient" : state.dictationMode;
+    }
+
+    function getModeLabel() {
+      if (state.inputMode === "ambient") return "Ambient Mode";
+      return {
+        reviewDictation: "Dictation Mode - Review Dictation",
+        visitDictation: "Dictation Mode - Visit Note",
+        prescription: "Dictation Mode - Prescription",
+        medicalCertificate: "Dictation Mode - Medical Certificate"
+      }[state.dictationMode] || "Dictation Mode";
+    }
+
+    function updateModeUi() {
+      const dictationActive = state.inputMode === "dictation";
+      document.getElementById("dictationModeToggle").classList.toggle("active", dictationActive);
+      document.getElementById("dictationOptions").classList.toggle("visible", dictationActive);
+      document.querySelectorAll("[data-dictation-mode]").forEach(button => {
+        button.classList.toggle("active", button.dataset.dictationMode === state.dictationMode);
+      });
+      document.querySelector(".intro").textContent = dictationActive ? getModeLabel() : "Ambient Mode";
+      recordCard.classList.toggle("strict", dictationActive);
+    }
+
+    function updateTimer() {
+      state.elapsed = Math.floor((Date.now() - state.startedAt) / 1000);
+      timer.textContent = formatTime(remainingTime());
+      if (state.elapsed >= state.maxRecordingSeconds) {
+        pauseForExtension();
+      }
+    }
+
+    function pauseForExtension() {
+      if (!state.mediaRecorder || state.mediaRecorder.state !== "recording") return;
+      state.mediaRecorder.pause();
+      state.paused = true;
+      clearInterval(state.timerId);
+      cancelAnimationFrame(state.animationId);
+      state.animationId = null;
+      drawFlatWaveform();
+      timer.textContent = "00:00";
+      status.textContent = "5 minute limit reached. Tap Extend 5 min to continue, or Stop & transcribe when ready.";
+      document.getElementById("extendButton").classList.add("alert");
+      updatePauseButton(true);
+      focusBox.classList.remove("recording");
+      focusKeyboardShortcuts();
+    }
+
+    async function startVisualization(stream) {
+      cancelAnimationFrame(state.animationId);
+      if (state.audioContext) {
+        await state.audioContext.close().catch(() => {});
+      }
+      state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (state.audioContext.state === "suspended") {
+        await state.audioContext.resume();
+      }
+      state.analyser = state.audioContext.createAnalyser();
+      state.analyser.fftSize = 2048;
+      state.waveformLevel = 0;
+      state.waveformPhase = 0;
+      const source = state.audioContext.createMediaStreamSource(stream);
+      source.connect(state.analyser);
+      renderWaveform();
+    }
+
+    function sizeWaveformCanvas() {
+      const rect = waveformCanvas.getBoundingClientRect();
+      const pixelRatio = window.devicePixelRatio || 1;
+      const width = Math.max(1, Math.floor(rect.width * pixelRatio));
+      const height = Math.max(1, Math.floor(rect.height * pixelRatio));
+      if (waveformCanvas.width !== width || waveformCanvas.height !== height) {
+        waveformCanvas.width = width;
+        waveformCanvas.height = height;
+      }
+      const context = waveformCanvas.getContext("2d");
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      return { width: rect.width, height: rect.height };
+    }
+
+    function drawFlatWaveform() {
+      waveformWrap.classList.add("active");
+      const context = waveformCanvas.getContext("2d");
+      const { width, height } = sizeWaveformCanvas();
+      const centerY = height / 2;
+      context.clearRect(0, 0, width, height);
+      context.lineWidth = Math.max(2, width / 260);
+      context.lineCap = "round";
+      context.strokeStyle = "rgba(37, 99, 235, 0.42)";
+      context.beginPath();
+      context.moveTo(0, centerY);
+      context.lineTo(width, centerY);
+      context.stroke();
+    }
+
+    function showIdleWaveformMark() {
+      cancelAnimationFrame(state.animationId);
+      state.animationId = null;
+      waveformWrap.classList.remove("active");
+      const context = waveformCanvas.getContext("2d");
+      const { width, height } = sizeWaveformCanvas();
+      context.clearRect(0, 0, width, height);
+    }
+
+    function renderWaveform() {
+      if (!waveformCanvas) return;
+      waveformWrap.classList.add("active");
+      const context = waveformCanvas.getContext("2d");
+      const { width, height } = sizeWaveformCanvas();
+      const centerY = height / 2;
+      const amplitude = height * 0.5;
+      const pointCount = 100;
+      const pointGap = width / Math.max(1, pointCount - 1);
+      const waveCycles = 9;
+      context.clearRect(0, 0, width, height);
+      context.lineWidth = Math.max(3, width / 180);
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.strokeStyle = "#2563eb";
+      context.shadowColor = "rgba(37, 99, 235, 0.32)";
+      context.shadowBlur = 10;
+
+      if (!state.analyser || !state.mediaRecorder || state.mediaRecorder.state !== "recording") {
+        context.shadowBlur = 0;
+        drawFlatWaveform();
+        return;
+      }
+
+      const data = new Uint8Array(state.analyser.fftSize);
+      state.analyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let index = 0; index < data.length; index += 1) {
+        const sample = (data[index] - 128) / 128;
+        sum += sample * sample;
+      }
+      const rms = Math.sqrt(sum / data.length);
+      const targetLevel = Math.max(0.02, Math.min(1, rms * 11));
+      state.waveformLevel = state.waveformLevel * 0.78 + targetLevel * 0.22;
+      state.waveformPhase += 0.07;
+      context.beginPath();
+      for (let index = 0; index < pointCount; index += 1) {
+        const x = index * pointGap;
+        const progress = index / Math.max(1, pointCount - 1);
+        const wave = Math.sin(progress * Math.PI * 2 * waveCycles + state.waveformPhase);
+        const envelope = 0.72 + 0.28 * Math.sin(progress * Math.PI);
+        const y = centerY + wave * amplitude * state.waveformLevel * envelope;
+        if (index === 0) {
+          context.moveTo(x, y);
+        } else {
+          context.lineTo(x, y);
+        }
+      }
+      context.stroke();
+      context.shadowBlur = 0;
+      state.animationId = requestAnimationFrame(renderWaveform);
+    }
+
+    function setRecordingControls() {
+      recordCard.classList.add("recording-controls");
+      controls.innerHTML = `
+        <span class="control-item pause-control">
+          <button class="round pause" id="pauseButton" type="button" title="Pause Recording" aria-label="Pause Recording">${icon("pause")}<span class="mobile-button-text" id="pauseButtonText">Pause</span></button>
+          <span class="control-label" id="pauseLabel">Pause</span>
+        </span>
+        <span class="control-item stop-control">
+          <button class="round stop" id="stopButton" type="button" title="Stop and Transcribe" aria-label="Stop and Transcribe">${icon("stop")}<span class="mobile-button-text">Stop &amp; transcribe</span></button>
+          <span class="control-label">Stop &amp; transcribe</span>
+        </span>
+      `;
+      document.getElementById("pauseButton").addEventListener("click", togglePause);
+      document.getElementById("stopButton").addEventListener("click", () => stopRecording(true));
+      document.getElementById("extendButton").classList.add("visible");
+    }
+
+    function setIdleControls() {
+      recordCard.classList.remove("recording-controls");
+      controls.innerHTML = `
+        <span class="control-item start-control">
+          <button class="round record" id="recordButton" type="button" title="Start Recording" aria-label="Start Recording">${icon("mic")}<span class="mobile-button-text">Start recording</span></button>
+          <span class="control-label">Start recording</span>
+        </span>
+      `;
+      document.getElementById("recordButton").addEventListener("click", startRecording);
+    }
+
+    async function getMicrophoneStream() {
+      const reusableStream = state.stream && state.stream.getAudioTracks().some(track => track.readyState === "live");
+      if (!reusableStream) {
+        state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        state.stream.getAudioTracks().forEach(track => {
+          track.addEventListener("ended", () => {
+            state.stream = null;
+          }, { once: true });
+        });
+      }
+      state.stream.getAudioTracks().forEach(track => {
+        track.enabled = true;
+      });
+      return state.stream;
+    }
+
+    async function startRecording() {
+      if (state.pendingBlob) {
+        status.textContent = "Press Enter to transcribe the completed recording.";
+        return;
+      }
+      try {
+        const microphoneStream = await getMicrophoneStream();
+        state.chunks = [];
+        state.transcribeOnStop = false;
+        state.paused = false;
+        state.maxRecordingSeconds = DEFAULT_RECORDING_SECONDS;
+        state.mediaRecorder = new MediaRecorder(microphoneStream);
+        state.mediaRecorder.ondataavailable = event => {
+          if (event.data.size > 0) state.chunks.push(event.data);
+        };
+        state.mediaRecorder.onstop = handleRecordingComplete;
+        state.mediaRecorder.start();
+        state.startedAt = Date.now();
+        state.timerId = setInterval(updateTimer, 1000);
+        timer.textContent = formatTime(state.maxRecordingSeconds);
+        status.textContent = "Recording in progress...";
+        focusBox.classList.add("recording");
+        setRecordingControls();
+        focusKeyboardShortcuts();
+        await startVisualization(microphoneStream);
+      } catch (error) {
+        status.textContent = "Microphone access denied. Please enable microphone permissions.";
+      }
+    }
+
+    function extendRecording() {
+      if (!state.mediaRecorder || state.mediaRecorder.state === "inactive") return;
+      state.maxRecordingSeconds += EXTEND_SECONDS;
+      document.getElementById("extendButton").classList.remove("alert");
+      if (state.mediaRecorder.state === "paused") {
+        state.mediaRecorder.resume();
+        state.paused = false;
+        updatePauseButton(false);
+        focusBox.classList.add("recording");
+        renderWaveform();
+      }
+      state.startedAt = Date.now() - state.elapsed * 1000;
+      clearInterval(state.timerId);
+      state.timerId = setInterval(updateTimer, 1000);
+      timer.textContent = formatTime(remainingTime());
+      status.textContent = `Recording extended. ${formatTime(remainingTime())} remaining.`;
+      focusKeyboardShortcuts();
+    }
+
+    function updatePauseButton(paused) {
+      const pauseButton = document.getElementById("pauseButton");
+      const label = paused ? "Resume" : "Pause";
+      const title = paused ? "Resume Recording" : "Pause Recording";
+      pauseButton.innerHTML = `${icon(paused ? "play" : "pause")}<span class="mobile-button-text" id="pauseButtonText">${label}</span>`;
+      pauseButton.title = title;
+      pauseButton.setAttribute("aria-label", title);
+      document.getElementById("pauseLabel").textContent = label;
+    }
+
+    function togglePause() {
+      if (!state.mediaRecorder || state.mediaRecorder.state === "inactive") return;
+      if (state.mediaRecorder.state === "paused") {
+        state.mediaRecorder.resume();
+        state.paused = false;
+        state.startedAt = Date.now() - state.elapsed * 1000;
+        clearInterval(state.timerId);
+        state.timerId = setInterval(updateTimer, 1000);
+        status.textContent = "Recording in progress...";
+        document.getElementById("extendButton").classList.remove("alert");
+        updatePauseButton(false);
+        focusBox.classList.add("recording");
+        renderWaveform();
+        focusKeyboardShortcuts();
+      } else if (state.mediaRecorder.state === "recording") {
+        state.mediaRecorder.pause();
+        state.paused = true;
+        clearInterval(state.timerId);
+        cancelAnimationFrame(state.animationId);
+        state.animationId = null;
+        drawFlatWaveform();
+        status.textContent = "Recording paused";
+        updatePauseButton(true);
+        focusBox.classList.remove("recording");
+        focusKeyboardShortcuts();
+      }
+    }
+
+    function stopRecording(transcribeImmediately = false) {
+      if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+        state.transcribeOnStop = transcribeImmediately;
+        document.getElementById("extendButton").classList.remove("visible", "alert");
+        state.mediaRecorder.stop();
+      }
+    }
+
+    async function handleRecordingComplete() {
+      clearInterval(state.timerId);
+      cancelAnimationFrame(state.animationId);
+      state.animationId = null;
+      showIdleWaveformMark();
+      if (state.audioContext) {
+        await state.audioContext.close().catch(() => {});
+        state.audioContext = null;
+        state.analyser = null;
+      }
+      if (state.stream) {
+        state.stream.getAudioTracks().forEach(track => {
+          track.enabled = false;
+        });
+      }
+      const blob = new Blob(state.chunks, { type: "audio/webm" });
+      if (!blob.size) return;
+      state.pendingBlob = blob;
+      state.mediaRecorder = null;
+      state.paused = false;
+      focusBox.classList.remove("recording");
+      setIdleControls();
+      if (state.transcribeOnStop) {
+        await transcribePendingRecording();
+      } else {
+        status.textContent = "Recording stopped. Press Enter to transcribe.";
+      }
+    }
+
+    async function transcribePendingRecording() {
+      if (!state.pendingBlob) return;
+      const blob = state.pendingBlob;
+      state.pendingBlob = null;
+      await processAudio(blob);
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function resizeTextarea(textarea) {
+      if (!textarea.offsetParent) return;
+      textarea.style.height = "1px";
+      textarea.style.height = `${Math.max(56, textarea.scrollHeight + 2)}px`;
+      textarea.style.overflowY = "hidden";
+    }
+
+    function resizeAllTextareas() {
+      document.querySelectorAll(".section textarea").forEach(resizeTextarea);
+    }
+
+    function scheduleTextareaResize() {
+      requestAnimationFrame(() => {
+        resizeAllTextareas();
+        requestAnimationFrame(resizeAllTextareas);
+      });
+    }
+
+    async function processWithGemini(blob) {
+      const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY) || "";
+      if (!apiKey) {
+        document.getElementById("settings").classList.add("open");
+        throw new Error("Add and save your Gemini API key in Settings first.");
+      }
+      const audioBase64 = await blobToBase64(blob);
+      const mimeType = blob.type || "audio/webm";
+      return generateVisitNoteDirect({
+        apiKey,
+        audioBase64,
+        mimeType,
+        mode: getBackendMode()
+      });
+    }
+
+    async function processAudio(blob) {
+      setView("processing");
+      const processingText = document.getElementById("processingText");
+      const slowProcessingTimers = [
+        setTimeout(() => {
+          processingText.textContent = "Still processing. Please keep this page open while Gemini works on the recording.";
+        }, 90000),
+        setTimeout(() => {
+          processingText.textContent = "Still working. Your recording is being sent directly to Gemini.";
+        }, 180000)
+      ];
+      try {
+        const backendMode = getBackendMode();
+        processingText.textContent =
+          backendMode === "reviewDictation"
+            ? "Transcribing your review dictation..."
+            : backendMode === "prescription"
+              ? "Preparing your prescription..."
+              : backendMode === "medicalCertificate"
+                ? "Preparing your medical certificate..."
+              : "Preparing your visit note...";
+        const result = await processWithGemini(blob);
+        if (result.mode === "reviewDictation") {
+          showDictationResult(result.text);
+        } else if (result.mode === "prescription") {
+          showPrescriptionResult(result.prescription);
+        } else if (result.mode === "medicalCertificate") {
+          showMedicalCertificateResult(result.medicalCertificate);
+        } else {
+          showVisitNoteResult(result.report, result.mode);
+        }
+        document.getElementById("resultMessage").textContent = "";
+      } catch (error) {
+        if (getBackendMode() === "reviewDictation") {
+          showDictationResult("");
+        } else if (getBackendMode() === "prescription") {
+          showPrescriptionResult({});
+        } else if (getBackendMode() === "medicalCertificate") {
+          showMedicalCertificateResult({});
+        } else {
+          showVisitNoteResult({}, getBackendMode());
+        }
+        console.error("Visit note generation failed:", error);
+        const message = error?.message || "The visit note could not be generated.";
+        document.getElementById("resultMessage").textContent =
+          `${message} Your recording was not saved; please return and try again.`;
+      } finally {
+        slowProcessingTimers.forEach(clearTimeout);
+      }
+      setView("result");
+    }
+
+    function showVisitNoteResult(report, mode = "ambient") {
+      state.resultMode = mode;
+      document.getElementById("resultHeading").textContent = mode === "visitDictation" ? "Visit Note" : "Ambient Visit Note";
+      document.getElementById("visitNoteActions").style.display = "";
+      document.getElementById("dictationActions").style.display = "none";
+      document.getElementById("prescriptionActions").style.display = "none";
+      document.getElementById("certificateActions").style.display = "none";
+      document.getElementById("visitNoteResult").style.display = "";
+      document.getElementById("dictationResult").classList.remove("visible");
+      document.getElementById("prescriptionResult").classList.remove("visible");
+      document.getElementById("certificateResult").classList.remove("visible");
+      applyVisitLabels(mode);
+      fillReport(report);
+    }
+
+    function showDictationResult(text) {
+      state.resultMode = "reviewDictation";
+      document.getElementById("resultHeading").textContent = "Review Dictation";
+      document.getElementById("visitNoteActions").style.display = "none";
+      document.getElementById("dictationActions").style.display = "";
+      document.getElementById("prescriptionActions").style.display = "none";
+      document.getElementById("certificateActions").style.display = "none";
+      document.getElementById("visitNoteResult").style.display = "none";
+      document.getElementById("dictationResult").classList.add("visible");
+      document.getElementById("prescriptionResult").classList.remove("visible");
+      document.getElementById("certificateResult").classList.remove("visible");
+      document.getElementById("dictationText").value = text || "";
+      scheduleTextareaResize();
+    }
+
+    function showPrescriptionResult(data = {}) {
+      state.resultMode = "prescription";
+      document.getElementById("resultHeading").textContent = "Prescription";
+      document.getElementById("visitNoteActions").style.display = "none";
+      document.getElementById("dictationActions").style.display = "none";
+      document.getElementById("prescriptionActions").style.display = "";
+      document.getElementById("certificateActions").style.display = "none";
+      document.getElementById("visitNoteResult").style.display = "none";
+      document.getElementById("dictationResult").classList.remove("visible");
+      document.getElementById("prescriptionResult").classList.add("visible");
+      document.getElementById("certificateResult").classList.remove("visible");
+      document.getElementById("prescriptionDate").value = data.date || new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
+      document.getElementById("prescriptionName").value = data.patientName || "NIL";
+      document.getElementById("prescriptionAge").value = data.patientAge || "NIL";
+      document.getElementById("prescriptionSex").value = data.patientSex || "NIL";
+      document.getElementById("prescriptionUhid").value = data.patientUhid || "NIL";
+      document.getElementById("prescriptionMedications").value = numberPrescriptionText(data.medicationsAdvised || "NIL");
+      document.getElementById("prescriptionCredentials").value = getDoctorCredentials();
+      scheduleTextareaResize();
+    }
+
+    function showMedicalCertificateResult(data = {}) {
+      state.resultMode = "medicalCertificate";
+      document.getElementById("resultHeading").textContent = "Medical Certificate";
+      document.getElementById("visitNoteActions").style.display = "none";
+      document.getElementById("dictationActions").style.display = "none";
+      document.getElementById("prescriptionActions").style.display = "none";
+      document.getElementById("certificateActions").style.display = "";
+      document.getElementById("visitNoteResult").style.display = "none";
+      document.getElementById("dictationResult").classList.remove("visible");
+      document.getElementById("prescriptionResult").classList.remove("visible");
+      document.getElementById("certificateResult").classList.add("visible");
+      document.getElementById("certificateDate").value = data.date || new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
+      document.getElementById("certificateName").value = data.patientName || "NIL";
+      document.getElementById("certificateAge").value = data.patientAge || "NIL";
+      document.getElementById("certificateSex").value = data.patientSex || "NIL";
+      document.getElementById("certificateUhid").value = data.patientUhid || "NIL";
+      document.getElementById("certificateBody").value = data.certificateBody || "";
+      document.getElementById("certificateCredentials").value = getDoctorCredentials();
+      scheduleTextareaResize();
+    }
+
+    function applyVisitLabels(mode) {
+      const labels = mode === "visitDictation"
+        ? {
+            presentingComplaint: "Chief Complaints",
+            historyOfPresentIllness: "History of Present Illness",
+            examinationFindings: "Physical Examination",
+            provisionalDiagnosis: "Diagnosis",
+            treatmentPlan: "Orders"
+          }
+        : {
+            presentingComplaint: "1. Presenting Complaint",
+            historyOfPresentIllness: "2. History of Present Illness",
+            examinationFindings: "7. Examination Findings",
+            provisionalDiagnosis: "10. Provisional Diagnosis",
+            treatmentPlan: "11. Treatment Plan"
+          };
+      Object.entries(labels).forEach(([id, label]) => {
+        const heading = document.getElementById(id).closest(".section").querySelector("h3");
+        heading.textContent = label;
+      });
+    }
+
+    function fillReport(data) {
+      document.getElementById("patientName").value = data.patientName || "NIL";
+      document.getElementById("patientAge").value = data.patientAge || "NIL";
+      document.getElementById("patientSex").value = data.patientSex || "NIL";
+      document.getElementById("patientUhid").value = data.patientUhid || "NIL";
+      document.getElementById("presentingComplaint").value = data.presentingComplaint || "Generated presenting complaint will appear here.";
+      document.getElementById("historyOfPresentIllness").value = data.historyOfPresentIllness || "Generated history of present illness will appear here.";
+      document.getElementById("pastMedicalHistory").value = data.pastMedicalHistory || "NIL";
+      document.getElementById("allergies").value = data.allergies || "NIL";
+      document.getElementById("familyHistory").value = data.familyHistory || "NIL";
+      document.getElementById("personalHistory").value = data.personalHistory || "NIL";
+      document.getElementById("examinationFindings").value = data.examinationFindings || "NIL";
+      document.getElementById("reviewOfInvestigations").value = data.reviewOfInvestigations || "NIL";
+      document.getElementById("currentMedication").value = data.currentMedication || "NIL";
+      document.getElementById("provisionalDiagnosis").value = data.provisionalDiagnosis || "NIL";
+      document.getElementById("treatmentPlan").value = data.treatmentPlan || "NIL";
+    }
+
+    function resetScribe() {
+      if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+        state.mediaRecorder.onstop = null;
+        state.mediaRecorder.stop();
+      }
+      clearInterval(state.timerId);
+      cancelAnimationFrame(state.animationId);
+      state.animationId = null;
+      showIdleWaveformMark();
+      if (state.audioContext) {
+        state.audioContext.close().catch(() => {});
+        state.audioContext = null;
+        state.analyser = null;
+      }
+      if (state.stream) {
+        state.stream.getAudioTracks().forEach(track => {
+          track.enabled = false;
+        });
+      }
+      state.mediaRecorder = null;
+      state.chunks = [];
+      state.pendingBlob = null;
+      state.transcribeOnStop = false;
+      state.elapsed = 0;
+      state.maxRecordingSeconds = DEFAULT_RECORDING_SECONDS;
+      state.paused = false;
+      state.inputMode = "ambient";
+      state.dictationMode = "reviewDictation";
+      state.resultMode = "ambient";
+      timer.textContent = formatTime(state.maxRecordingSeconds);
+      status.textContent = "Tap microphone to start dictation";
+      focusBox.classList.remove("recording");
+      document.getElementById("extendButton").classList.remove("visible", "alert");
+      updateModeUi();
+      setIdleControls();
+      setView("record");
+    }
+
+    window.addEventListener("beforeunload", () => {
+      if (state.stream) state.stream.getTracks().forEach(track => track.stop());
+    });
+
+    document.getElementById("dictationModeToggle").addEventListener("click", () => {
+      state.inputMode = state.inputMode === "ambient" ? "dictation" : "ambient";
+      updateModeUi();
+      focusKeyboardShortcuts();
+    });
+
+    document.querySelectorAll("[data-dictation-mode]").forEach(button => {
+      button.addEventListener("click", () => {
+        state.inputMode = "dictation";
+        state.dictationMode = button.dataset.dictationMode;
+        updateModeUi();
+        focusKeyboardShortcuts();
+      });
+    });
+
+    document.getElementById("settingsButton").addEventListener("click", () => {
+      document.getElementById("settings").classList.toggle("open");
+    });
+
+    const apiKeyInput = document.getElementById("geminiApiKeyInput");
+    const apiKeyStatus = document.getElementById("apiKeyStatus");
+    apiKeyInput.value = localStorage.getItem(API_KEY_STORAGE_KEY) || "";
+    document.getElementById("saveApiKeyButton").addEventListener("click", () => {
+      const value = apiKeyInput.value.trim();
+      if (!value) {
+        apiKeyStatus.textContent = "Paste a Gemini API key before saving.";
+        return;
+      }
+      localStorage.setItem(API_KEY_STORAGE_KEY, value);
+      apiKeyStatus.textContent = "API key saved on this device.";
+    });
+    document.getElementById("removeApiKeyButton").addEventListener("click", () => {
+      localStorage.removeItem(API_KEY_STORAGE_KEY);
+      apiKeyInput.value = "";
+      apiKeyStatus.textContent = "API key removed from this device.";
+    });
+    document.getElementById("keyVisibilityButton").addEventListener("click", event => {
+      const showing = apiKeyInput.type === "text";
+      apiKeyInput.type = showing ? "password" : "text";
+      event.currentTarget.textContent = showing ? "Show" : "Hide";
+      event.currentTarget.setAttribute("aria-label", showing ? "Show API key" : "Hide API key");
+    });
+
+    document.getElementById("darkSwitch").addEventListener("click", event => {
+      state.dark = !state.dark;
+      document.body.classList.toggle("dark", state.dark);
+      event.currentTarget.classList.toggle("on", state.dark);
+    });
+
+    document.addEventListener("keydown", async event => {
+      if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+      const spaceKey = isSpaceKey(event);
+      const enterKey = isEnterKey(event);
+      if (!spaceKey && !enterKey) return;
+      const recordingActive = state.mediaRecorder && state.mediaRecorder.state !== "inactive";
+      if (recordingActive && spaceKey) {
+        event.preventDefault();
+        togglePause();
+        return;
+      }
+      if (recordingActive && enterKey) {
+        event.preventDefault();
+        stopRecording(true);
+        return;
+      }
+      const target = event.target;
+      const isEditing = target instanceof HTMLElement && (
+        target.isContentEditable ||
+        ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)
+      );
+      if (isEditing) return;
+
+      if (spaceKey) {
+        event.preventDefault();
+        if (processingView.classList.contains("visible") || resultView.classList.contains("visible")) return;
+        await startRecording();
+      }
+
+      if (enterKey) {
+        if (processingView.classList.contains("visible") || resultView.classList.contains("visible")) return;
+        if (state.pendingBlob) {
+          event.preventDefault();
+          await transcribePendingRecording();
+        }
+      }
+    });
+
+    const caseFields = [
+      ["Name", "patientName"],
+      ["Age", "patientAge"],
+      ["Sex", "patientSex"],
+      ["UHID", "patientUhid"],
+      ["Presenting Complaint", "presentingComplaint"],
+      ["History of Present Illness", "historyOfPresentIllness"],
+      ["Past Medical History", "pastMedicalHistory"],
+      ["Allergies", "allergies"],
+      ["Family History", "familyHistory"],
+      ["Personal History", "personalHistory"],
+      ["Examination Findings", "examinationFindings"],
+      ["Review of Investigations", "reviewOfInvestigations"],
+      ["Current Medication", "currentMedication"],
+      ["Provisional Diagnosis", "provisionalDiagnosis"],
+      ["Treatment Plan", "treatmentPlan"]
+    ];
+
+    const visitDictationFields = [
+      ["Name", "patientName"],
+      ["Age", "patientAge"],
+      ["Sex", "patientSex"],
+      ["UHID", "patientUhid"],
+      ["Chief Complaints", "presentingComplaint"],
+      ["History of Present Illness", "historyOfPresentIllness"],
+      ["Physical Examination", "examinationFindings"],
+      ["Diagnosis", "provisionalDiagnosis"],
+      ["Review of Investigations", "reviewOfInvestigations"],
+      ["Allergies", "allergies"],
+      ["Current Medications", "currentMedication"],
+      ["Orders", "treatmentPlan"]
+    ];
+
+    const prescriptionFields = [
+      ["Date", "prescriptionDate"],
+      ["Name", "prescriptionName"],
+      ["Age", "prescriptionAge"],
+      ["Sex", "prescriptionSex"],
+      ["UHID", "prescriptionUhid"],
+      ["Medications / Advice", "prescriptionMedications"],
+      ["Doctor Credentials", "prescriptionCredentials"]
+    ];
+
+    const certificateFields = [
+      ["Date", "certificateDate"],
+      ["Name", "certificateName"],
+      ["Age", "certificateAge"],
+      ["Sex", "certificateSex"],
+      ["UHID", "certificateUhid"],
+      ["Certificate Content", "certificateBody"],
+      ["Doctor Credentials", "certificateCredentials"]
+    ];
+
+    function getDoctorCredentials() {
+      return localStorage.getItem("doctor_woyz_doctor_credentials") || "";
+    }
+
+    function setDoctorCredentials(value) {
+      localStorage.setItem("doctor_woyz_doctor_credentials", value);
+      const prescriptionBox = document.getElementById("prescriptionCredentials");
+      if (prescriptionBox && state.resultMode === "prescription") prescriptionBox.value = value;
+      const certificateBox = document.getElementById("certificateCredentials");
+      if (certificateBox && state.resultMode === "medicalCertificate") certificateBox.value = value;
+    }
+
+    function activeVisitFields() {
+      return state.resultMode === "visitDictation" ? visitDictationFields : caseFields;
+    }
+
+    function collectFields(fields, omitNil = false) {
+      return fields
+        .map(([title, id]) => [title, document.getElementById(id).value.trim()])
+        .filter(([, value]) => !omitNil || (value && value.toUpperCase() !== "NIL"))
+        .map(([title, value]) => `${title}\n${value || "NIL"}`)
+        .join("\n\n");
+    }
+
+    function numberPrescriptionText(text) {
+      if (!text || text.trim().toUpperCase() === "NIL") return "NIL";
+      return text
+        .replace(/([a-z)])(\d+[\.)])(?=\s*[A-Z])/g, "$1\n$2")
+        .split(/\n+/)
+        .map(line => line
+          .trim()
+          .replace(/^\d+[\.)]\s*/, "")
+          .replace(/^[-•]\s*/, "")
+          .replace(/\s*\d+[\.)]\s*$/, "")
+          .trim())
+        .filter(Boolean)
+        .map((line, index) => `${index + 1}. ${line}`)
+        .join("\n");
+    }
+
+    function certificateBodyText() {
+      const body = document.getElementById("certificateBody").value.trim();
+      if (!body) return "NIL";
+      if (/^this is to certify/i.test(body)) return body;
+      const name = document.getElementById("certificateName").value.trim();
+      const age = document.getElementById("certificateAge").value.trim();
+      const sex = document.getElementById("certificateSex").value.trim();
+      const uhid = document.getElementById("certificateUhid").value.trim();
+      const details = [
+        name && name.toUpperCase() !== "NIL" ? name : "",
+        age && age.toUpperCase() !== "NIL" ? `${age} old` : "",
+        sex && sex.toUpperCase() !== "NIL" ? sex : "",
+        uhid && uhid.toUpperCase() !== "NIL" ? `UHID ${uhid}` : ""
+      ].filter(Boolean).join(", ");
+      return details
+        ? `This is to certify that ${details}. ${body}`
+        : `This is to certify that ${body}`;
+    }
+
+    function certificatePlainText() {
+      return [
+        document.getElementById("certificateDate").value.trim(),
+        "To Whomsoever It May Concern",
+        certificateBodyText(),
+        "Thank you",
+        document.getElementById("certificateCredentials").value.trim()
+      ].filter(Boolean).join("\n\n");
+    }
+
+    async function writeClipboardText(text) {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+
+    async function copyCaseSheet({ omitNil, button, idleLabel, fields }) {
+      const text = collectFields(fields || activeVisitFields(), omitNil);
+      button.textContent = "Copied";
+      await writeClipboardText(text);
+      setTimeout(() => button.textContent = idleLabel, 1400);
+    }
+
+    function formatHtmlText(value) {
+      return escapeHtml(value || "NIL").replace(/\n/g, "<br>");
+    }
+
+    function formatCredentialsHtml(value) {
+      const lines = String(value || "").split("\n");
+      if (!lines.some(line => line.trim())) return "";
+      const firstLineIndex = lines.findIndex(line => line.trim());
+      return lines
+        .map((line, index) => {
+          const escaped = escapeHtml(line);
+          return index === firstLineIndex
+            ? `<strong>${escaped}</strong>`
+            : escaped;
+        })
+        .join("<br>");
+    }
+
+    function printDocument({ title, sections, prescription = false, certificate = false }) {
+      const body = certificate
+        ? `
+          <div class="certificate-page">
+            <div class="certificate-date">${formatHtmlText(document.getElementById("certificateDate").value.trim())}</div>
+            <h1 class="certificate-title">To Whomsoever It May Concern</h1>
+            <div class="certificate-body">
+              ${formatHtmlText(certificateBodyText())}
+            </div>
+            <div class="certificate-thanks">Thank you</div>
+            <div class="certificate-credentials">${formatCredentialsHtml(document.getElementById("certificateCredentials").value.trim())}</div>
+          </div>
+        `
+        : prescription
+        ? `
+          <div class="rx-head">
+            <h1>Prescription</h1>
+            <div>${formatHtmlText(document.getElementById("prescriptionDate").value.trim())}</div>
+          </div>
+          <div class="patient-line">
+            <span><strong>Name:</strong> ${formatHtmlText(document.getElementById("prescriptionName").value.trim())}</span>
+            <span><strong>Age:</strong> ${formatHtmlText(document.getElementById("prescriptionAge").value.trim())}</span>
+            <span><strong>Sex:</strong> ${formatHtmlText(document.getElementById("prescriptionSex").value.trim())}</span>
+            <span><strong>UHID:</strong> ${formatHtmlText(document.getElementById("prescriptionUhid").value.trim())}</span>
+          </div>
+          <h2>Medications / Advice</h2>
+          <div class="content">${formatHtmlText(numberPrescriptionText(document.getElementById("prescriptionMedications").value.trim()))}</div>
+          <div class="credentials">${formatCredentialsHtml(document.getElementById("prescriptionCredentials").value.trim())}</div>
+        `
+        : sections.map(([heading, value]) => `
+          <section>
+            <h2>${escapeHtml(heading)}</h2>
+            <div class="content">${formatHtmlText(value)}</div>
+          </section>
+        `).join("");
+      const printWindow = window.open("", "_blank", "width=900,height=700");
+      if (!printWindow) return;
+      printWindow.document.write(`
+        <!doctype html>
+        <html>
+          <head>
+            <title>${escapeHtml(title)}</title>
+            <style>
+              body { font-family: Arial, sans-serif; color: #111827; margin: 36px; line-height: 1.45; }
+              h1 { margin: 0 0 18px; color: #1f3f8f; font-size: 26px; }
+              h2 { margin: 18px 0 6px; color: #334155; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+              section { break-inside: avoid; margin-bottom: 12px; }
+              .content { white-space: normal; font-size: 15px; }
+              .rx-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #d0d5dd; padding-bottom: 12px; margin-bottom: 18px; }
+              .patient-line { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; margin-bottom: 22px; }
+              .credentials { margin-top: 70px; white-space: normal; text-align: left; font-size: 14px; }
+              .certificate-page { padding-top: 72px; }
+              .certificate-date { text-align: right; margin-bottom: 48px; font-size: 15px; }
+              .certificate-title { text-align: center; color: #111827; text-transform: uppercase; text-decoration: underline; letter-spacing: .04em; margin-bottom: 36px; font-size: 22px; }
+              .certificate-body { white-space: normal; font-size: 16px; line-height: 1.8; text-align: justify; margin-top: 12px; }
+              .certificate-thanks { margin-top: 42px; font-size: 15px; }
+              .certificate-credentials { margin-top: 44px; white-space: normal; text-align: left; font-size: 14px; }
+              @media print { body { margin: 24mm 18mm; } button { display: none; } }
+            </style>
+          </head>
+          <body>${prescription || certificate ? body : `<h1>${escapeHtml(title)}</h1>${body}`}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 250);
+    }
+
+    function printVisitNote() {
+      const sections = activeVisitFields()
+        .map(([title, id]) => [title, document.getElementById(id).value.trim()])
+        .filter(([, value]) => value && value.toUpperCase() !== "NIL");
+      printDocument({ title: state.resultMode === "visitDictation" ? "Visit Note" : "Ambient Visit Note", sections });
+    }
+
+    function printDictation() {
+      printDocument({
+        title: "Review Dictation",
+        sections: [["Review Dictation", document.getElementById("dictationText").value.trim()]]
+      });
+    }
+
+    function printPrescription() {
+      const medicationBox = document.getElementById("prescriptionMedications");
+      medicationBox.value = numberPrescriptionText(medicationBox.value);
+      printDocument({ title: "Prescription", prescription: true });
+    }
+
+    function printMedicalCertificate() {
+      printDocument({ title: "Medical Certificate", certificate: true });
+    }
+
+    document.getElementById("copyButton").addEventListener("click", event => {
+      copyCaseSheet({ omitNil: false, button: event.currentTarget, idleLabel: "Copy All" });
+    });
+
+    document.getElementById("copyWithoutNilButton").addEventListener("click", event => {
+      copyCaseSheet({ omitNil: true, button: event.currentTarget, idleLabel: "Copy without NIL" });
+    });
+
+    document.getElementById("copyDictationButton").addEventListener("click", async event => {
+      const button = event.currentTarget;
+      button.textContent = "Copied";
+      button.disabled = true;
+      setTimeout(() => {
+        button.textContent = "Copy Dictation";
+        button.disabled = false;
+      }, 1400);
+      try {
+        await writeClipboardText(document.getElementById("dictationText").value.trim());
+      } catch (error) {
+        console.warn("Copy dictation failed:", error);
+      }
+    });
+
+    document.getElementById("copyPrescriptionButton").addEventListener("click", event => {
+      const medicationBox = document.getElementById("prescriptionMedications");
+      medicationBox.value = numberPrescriptionText(medicationBox.value);
+      copyCaseSheet({
+        omitNil: true,
+        button: event.currentTarget,
+        idleLabel: "Copy Prescription",
+        fields: prescriptionFields
+      });
+    });
+
+    document.getElementById("copyCertificateButton").addEventListener("click", async event => {
+      const button = event.currentTarget;
+      button.textContent = "Copied";
+      button.disabled = true;
+      setTimeout(() => {
+        button.textContent = "Copy Certificate";
+        button.disabled = false;
+      }, 1400);
+      try {
+        await writeClipboardText(certificatePlainText());
+      } catch (error) {
+        console.warn("Copy certificate failed:", error);
+      }
+    });
+
+    document.getElementById("printVisitButton").addEventListener("click", printVisitNote);
+    document.getElementById("printDictationButton").addEventListener("click", printDictation);
+    document.getElementById("printPrescriptionButton").addEventListener("click", printPrescription);
+    document.getElementById("printCertificateButton").addEventListener("click", printMedicalCertificate);
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[character]));
+    }
+
+    document.getElementById("doctorCredentialsInput").value = getDoctorCredentials();
+    document.getElementById("doctorCredentialsInput").addEventListener("input", event => {
+      setDoctorCredentials(event.currentTarget.value);
+    });
+    document.getElementById("brandButton").addEventListener("click", resetScribe);
+    document.getElementById("newButton").addEventListener("click", resetScribe);
+    localStorage.removeItem("opd_demo_ai_model_v2");
+    document.querySelectorAll(".section textarea").forEach(textarea => {
+      textarea.addEventListener("input", () => resizeTextarea(textarea));
+    });
+    document.getElementById("extendButton").addEventListener("click", extendRecording);
+    window.addEventListener("resize", () => {
+      scheduleTextareaResize();
+      if (state.mediaRecorder && state.mediaRecorder.state === "recording") {
+        cancelAnimationFrame(state.animationId);
+        renderWaveform();
+      } else if (state.mediaRecorder && state.mediaRecorder.state === "paused") {
+        drawFlatWaveform();
+      } else {
+        showIdleWaveformMark();
+      }
+    });
+    window.addEventListener("load", focusKeyboardShortcuts);
+    window.addEventListener("pageshow", focusKeyboardShortcuts);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) focusKeyboardShortcuts();
+    });
+    setIdleControls();
+    updateModeUi();
+    showIdleWaveformMark();
+    focusKeyboardShortcuts();
+    scheduleTextareaResize();
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(error => {
+          console.warn("Service worker registration failed:", error);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
