@@ -21,13 +21,13 @@
       color-scheme: light;
       --bg: #f8fafc;
       --panel: #ffffff;
-      --panel-soft: #eff6ff;
+      --panel-soft: #fff1f2;
       --text: #0f172a;
       --muted: #64748b;
       --line: #e2e8f0;
-      --blue: #2563eb;
-      --blue-dark: #1d4ed8;
-      --indigo: #4f46e5;
+      --blue: #ff4545;
+      --blue-dark: #dc2626;
+      --indigo: #b91c1c;
       --shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
     }
 
@@ -35,7 +35,7 @@
       color-scheme: dark;
       --bg: #020617;
       --panel: #0f172a;
-      --panel-soft: #0b1f45;
+      --panel-soft: #351214;
       --text: #f8fafc;
       --muted: #94a3b8;
       --line: #1e293b;
@@ -148,7 +148,7 @@
 
     .approval-field input:focus {
       border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      box-shadow: 0 0 0 3px rgba(255, 69, 69, 0.16);
     }
 
     .request-row {
@@ -207,35 +207,45 @@
       gap: 12px;
       border: 0;
       background: transparent;
-      color: inherit;
+      color: var(--text);
       cursor: pointer;
       padding: 6px;
     }
 
-    .brand-mark {
-      width: 46px;
-      height: 46px;
-      display: grid;
-      place-items: center;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #111827, var(--blue));
-      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
-      color: #ffffff;
-      font-size: 27px;
+    .brand-doctor {
+      font-size: 30px;
+      line-height: 1;
       font-weight: 900;
       letter-spacing: 0;
-      line-height: 1;
+    }
+
+    .brand-mark {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--blue);
+      box-shadow: 0 0 0 11px rgba(255, 69, 69, 0.14);
+      color: transparent;
+      font-size: 0;
+      flex: 0 0 auto;
     }
 
     .brand-title {
-      font-size: 26px;
-      line-height: 1.1;
-      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 18px;
+      border: 4px solid var(--blue);
+      border-radius: 30px;
+      background: #17181d;
+      padding: 14px 28px 14px 20px;
+      box-shadow: 0 14px 32px rgba(255, 69, 69, 0.18);
+      color: #f8fafc;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 900;
       letter-spacing: 0;
-      background: linear-gradient(90deg, #1d4ed8, #2563eb, #06b6d4);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
     }
 
     .new-button {
@@ -253,7 +263,7 @@
       padding: 10px 14px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
+      box-shadow: 0 10px 24px rgba(255, 69, 69, 0.24);
     }
 
     .new-button.visible {
@@ -296,8 +306,8 @@
     }
 
     .card.strict {
-      background: color-mix(in srgb, var(--panel) 82%, #dbeafe);
-      border-color: #bfdbfe;
+      background: color-mix(in srgb, var(--panel) 82%, #ffe4e6);
+      border-color: #fecdd3;
     }
 
     .focus-box {
@@ -367,7 +377,7 @@
       font-weight: 900;
       line-height: 1;
       transform: translate(-50%, -50%);
-      box-shadow: 0 16px 32px rgba(37, 99, 235, 0.2);
+      box-shadow: 0 16px 32px rgba(255, 69, 69, 0.2);
       transition: opacity 140ms ease, transform 140ms ease;
       pointer-events: none;
     }
@@ -453,15 +463,15 @@
 
     .extend-button {
       min-height: 44px;
-      border: 1px solid #bfdbfe;
+      border: 1px solid #fecdd3;
       border-radius: 12px;
       color: var(--blue-dark);
-      background: #eff6ff;
+      background: #fff1f2;
       padding: 10px 13px;
       font-size: 13px;
       font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.12);
+      box-shadow: 0 10px 22px rgba(255, 69, 69, 0.12);
       transition: transform 150ms ease, filter 150ms ease;
     }
 
@@ -540,10 +550,10 @@
     }
 
     .mode-toggle {
-      border: 1px solid #bfdbfe;
+      border: 1px solid #fecdd3;
       border-radius: 999px;
       color: var(--blue-dark);
-      background: #eff6ff;
+      background: #fff1f2;
       padding: 10px 16px;
       font-size: 14px;
       font-weight: 850;
@@ -724,7 +734,7 @@
 
     .credentials-field textarea:focus {
       border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      box-shadow: 0 0 0 3px rgba(255, 69, 69, 0.16);
     }
 
     .remove-key {
@@ -760,7 +770,7 @@
     .api-field input:focus,
     .api-field select:focus {
       border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      box-shadow: 0 0 0 3px rgba(255, 69, 69, 0.16);
     }
 
     .save-key {
@@ -847,7 +857,7 @@
       place-items: center;
       border-radius: 12px;
       color: var(--blue);
-      background: #dbeafe;
+      background: #ffe4e6;
     }
 
     .result-header h2 {
@@ -879,14 +889,14 @@
     }
 
     .copy-button {
-      border: 1px solid #bfdbfe;
+      border: 1px solid #fecdd3;
       background: var(--panel);
       color: var(--blue-dark);
       border-radius: 10px;
       padding: 11px 15px;
       font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 5px 14px rgba(37, 99, 235, 0.08);
+      box-shadow: 0 5px 14px rgba(255, 69, 69, 0.08);
     }
 
     .result-grid {
@@ -933,12 +943,12 @@
     }
 
     .section.diagnosis {
-      border-color: #bfdbfe;
-      background: #eff6ff;
+      border-color: #fecdd3;
+      background: #fff1f2;
     }
 
     .dark .section.diagnosis {
-      background: #0b1f45;
+      background: #351214;
     }
 
     .section h3 {
@@ -981,13 +991,13 @@
     }
 
     .section.diagnosis textarea {
-      color: #1e3a8a;
+      color: #991b1b;
       font-size: 17px;
       font-weight: 700;
     }
 
     .dark .section.diagnosis textarea {
-      color: #bfdbfe;
+      color: #fecdd3;
     }
 
     .processing {
@@ -1030,19 +1040,28 @@
       }
 
       .brand {
-        gap: 10px;
+        gap: 12px;
         min-width: 0;
       }
 
+      .brand-doctor {
+        font-size: 24px;
+      }
+
       .brand-mark {
-        width: 38px;
-        height: 38px;
-        border-radius: 9px;
-        font-size: 23px;
+        width: 17px;
+        height: 17px;
+        border-radius: 999px;
+        font-size: 0;
+        box-shadow: 0 0 0 9px rgba(255, 69, 69, 0.14);
       }
 
       .brand-title {
-        font-size: 20px;
+        gap: 12px;
+        border-width: 3px;
+        border-radius: 24px;
+        padding: 10px 20px 10px 16px;
+        font-size: 24px;
         white-space: nowrap;
       }
 
@@ -1232,10 +1251,11 @@
     <header class="topbar">
       <div class="topbar-inner">
         <button class="brand" id="brandButton" type="button" title="New dictation">
-          <span class="brand-mark" aria-hidden="true">
-            W
+          <span class="brand-doctor">Doctor</span>
+          <span class="brand-title">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>WOYZ</span>
           </span>
-          <span class="brand-title">Doctor WOYZ</span>
         </button>
         <button class="new-button" id="newButton" type="button">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
@@ -1658,7 +1678,7 @@
       context.clearRect(0, 0, width, height);
       context.lineWidth = Math.max(2, width / 260);
       context.lineCap = "round";
-      context.strokeStyle = "rgba(37, 99, 235, 0.42)";
+      context.strokeStyle = "rgba(255, 69, 69, 0.42)";
       context.beginPath();
       context.moveTo(0, centerY);
       context.lineTo(width, centerY);
@@ -1688,8 +1708,8 @@
       context.lineWidth = Math.max(3, width / 180);
       context.lineCap = "round";
       context.lineJoin = "round";
-      context.strokeStyle = "#2563eb";
-      context.shadowColor = "rgba(37, 99, 235, 0.32)";
+      context.strokeStyle = "#ff4545";
+      context.shadowColor = "rgba(255, 69, 69, 0.32)";
       context.shadowBlur = 10;
 
       if (!state.analyser || !state.mediaRecorder || state.mediaRecorder.state !== "recording") {
