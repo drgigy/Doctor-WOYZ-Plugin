@@ -2416,7 +2416,7 @@
 
     function numberPrescriptionText(text) {
       if (!text || text.trim().toUpperCase() === "NIL") return "NIL";
-      return text
+      const lines = text
         .replace(/([a-z)])(\d+[\.)])(?=\s*[A-Z])/g, "$1\n$2")
         .split(/\n+/)
         .map(line => line
@@ -2424,10 +2424,33 @@
           .replace(/^\d+[\.)]\s*/, "")
           .replace(/^[-•]\s*/, "")
           .replace(/\s*\d+[\.)]\s*$/, "")
+          .replace(/\bTake\s+(\d{2,})\s+(tablets?|capsules?)\.?/gi, "(total $1 $2)")
           .trim())
-        .filter(Boolean)
-        .map((line, index) => `${index + 1}. ${line}`)
-        .join("\n");
+        .filter(Boolean);
+      const output = [];
+      let medicineNumber = 0;
+      let inAdvice = false;
+      lines.forEach(line => {
+        if (/^(medications?|rx)\s*:?$/i.test(line)) return;
+        if (/^advice\s*:?$/i.test(line)) {
+          inAdvice = true;
+          output.push("Advice:");
+          return;
+        }
+        const hasMalayalam = /[\u0D00-\u0D7F]/.test(line);
+        const isMedicine = /^(tablet|cap|capsule|syrup|inj|injection|cream|ointment|drops?)\b/i.test(line);
+        if (!inAdvice && hasMalayalam) {
+          output.push(line);
+          return;
+        }
+        if (!inAdvice && isMedicine) {
+          medicineNumber += 1;
+          output.push(`${medicineNumber}. ${line}`);
+          return;
+        }
+        output.push(inAdvice ? `- ${line}` : line);
+      });
+      return output.length ? output.join("\n") : "NIL";
     }
 
     function certificateBodyText() {

@@ -341,6 +341,9 @@ Formatting rules:
 - For each medication, keep brand name and dose clear. Put timing, duration,
   and before food/after food/empty stomach instructions in the same medication
   line if dictated.
+- If a total tablet/capsule count is dictated for dispensing, do not convert it
+  into a patient instruction like "Take 10 tablets." Write it as total quantity,
+  for example "(total 10 tablets)", after the actual dose/timing instruction.
 - In English prescription instructions, write duration in numeric form only,
   for example "1 month", "10 days", "2 weeks". Do not write "one month", "one
   more month", "for one more month", or vague words like "more" or "less".
@@ -424,6 +427,9 @@ Rules:
 - Write each medication or advice item on a separate numbered line: 1, 2, 3.
 - Preserve drug names, doses, timings, durations, and instructions exactly as
   dictated.
+- If a total tablet/capsule count is dictated for dispensing, do not convert it
+  into a patient instruction like "Take 10 tablets." Write it as total quantity,
+  for example "(total 10 tablets)", after the actual dose/timing instruction.
 - Never invent, infer, recommend, or add information that was not spoken.
 `.trim();
 }
