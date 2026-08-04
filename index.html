@@ -1299,6 +1299,8 @@
             <button class="mode-option active" data-dictation-mode="reviewDictation" type="button">Review Dictation</button>
             <button class="mode-option" data-dictation-mode="visitDictation" type="button">Visit Note</button>
             <button class="mode-option" data-dictation-mode="prescription" type="button">Prescription</button>
+            <button class="mode-option" data-dictation-mode="visitPrescription" type="button">Visit + Prescription</button>
+            <button class="mode-option" data-dictation-mode="replyLetter" type="button">Reply Letter</button>
             <button class="mode-option" data-dictation-mode="medicalCertificate" type="button">Medical Certificate</button>
           </div>
         </div>
@@ -1329,6 +1331,7 @@
           </div>
           <div class="result-actions" id="dictationActions" style="display:none;">
             <button class="copy-button" id="copyDictationButton" type="button">Copy Dictation</button>
+            <button class="copy-button" id="printCombinedPrescriptionButton" type="button" style="display:none;">Print Prescription</button>
             <button class="copy-button" id="printDictationButton" type="button">Print</button>
           </div>
           <div class="result-actions" id="prescriptionActions" style="display:none;">
@@ -1599,6 +1602,8 @@
         reviewDictation: "Dictation Mode - Review Dictation",
         visitDictation: "Dictation Mode - Visit Note",
         prescription: "Dictation Mode - Prescription",
+        visitPrescription: "Dictation Mode - Visit + Prescription",
+        replyLetter: "Dictation Mode - Reply Letter",
         medicalCertificate: "Dictation Mode - Medical Certificate"
       }[state.dictationMode] || "Dictation Mode";
     }
@@ -1978,17 +1983,17 @@
       ];
       try {
         const backendMode = getBackendMode();
-        processingText.textContent =
-          backendMode === "reviewDictation"
-            ? "Transcribing your review dictation..."
-            : backendMode === "prescription"
-              ? "Preparing your prescription..."
-              : backendMode === "medicalCertificate"
-                ? "Preparing your medical certificate..."
-              : "Preparing your visit note...";
+        const processingMessages = {
+          reviewDictation: "Transcribing your review dictation...",
+          prescription: "Preparing your prescription...",
+          visitPrescription: "Preparing your visit note and prescription...",
+          replyLetter: "Preparing your reply letter...",
+          medicalCertificate: "Preparing your medical certificate..."
+        };
+        processingText.textContent = processingMessages[backendMode] || "Preparing your visit note...";
         const result = await processWithGemini(blob);
-        if (result.mode === "reviewDictation") {
-          showDictationResult(result.text);
+        if (["reviewDictation", "visitPrescription", "replyLetter"].includes(result.mode)) {
+          showTextResult(result.text, result.mode);
         } else if (result.mode === "prescription") {
           showPrescriptionResult(result.prescription);
         } else if (result.mode === "medicalCertificate") {
@@ -1998,8 +2003,8 @@
         }
         document.getElementById("resultMessage").textContent = "";
       } catch (error) {
-        if (getBackendMode() === "reviewDictation") {
-          showDictationResult("");
+        if (["reviewDictation", "visitPrescription", "replyLetter"].includes(getBackendMode())) {
+          showTextResult("", getBackendMode());
         } else if (getBackendMode() === "prescription") {
           showPrescriptionResult({});
         } else if (getBackendMode() === "medicalCertificate") {
@@ -2032,9 +2037,14 @@
       fillReport(report);
     }
 
-    function showDictationResult(text) {
-      state.resultMode = "reviewDictation";
-      document.getElementById("resultHeading").textContent = "Review Dictation";
+    function showTextResult(text, mode = "reviewDictation") {
+      const labels = {
+        reviewDictation: "Review Dictation",
+        visitPrescription: "Visit + Prescription",
+        replyLetter: "Reply Letter"
+      };
+      state.resultMode = mode;
+      document.getElementById("resultHeading").textContent = labels[mode] || "Review Dictation";
       document.getElementById("visitNoteActions").style.display = "none";
       document.getElementById("dictationActions").style.display = "";
       document.getElementById("prescriptionActions").style.display = "none";
@@ -2043,8 +2053,17 @@
       document.getElementById("dictationResult").classList.add("visible");
       document.getElementById("prescriptionResult").classList.remove("visible");
       document.getElementById("certificateResult").classList.remove("visible");
+      document.getElementById("dictationResult").querySelector("h3").textContent = labels[mode] || "Review Dictation";
+      document.getElementById("copyDictationButton").textContent =
+        mode === "replyLetter" ? "Copy Letter" : mode === "visitPrescription" ? "Copy Note" : "Copy Dictation";
+      document.getElementById("printCombinedPrescriptionButton").style.display =
+        mode === "visitPrescription" ? "" : "none";
       document.getElementById("dictationText").value = text || "";
       scheduleTextareaResize();
+    }
+
+    function showDictationResult(text) {
+      showTextResult(text, "reviewDictation");
     }
 
     function showPrescriptionResult(data = {}) {
@@ -2495,10 +2514,18 @@
       printDocument({ title: state.resultMode === "visitDictation" ? "Visit Note" : "Ambient Visit Note", sections });
     }
 
+    function textResultTitle() {
+      return {
+        reviewDictation: "Review Dictation",
+        visitPrescription: "Visit + Prescription",
+        replyLetter: "Reply Letter"
+      }[state.resultMode] || "Review Dictation";
+    }
+
     function printDictation() {
       printDocument({
-        title: "Review Dictation",
-        sections: [["Review Dictation", document.getElementById("dictationText").value.trim()]]
+        title: textResultTitle(),
+        sections: [[textResultTitle(), document.getElementById("dictationText").value.trim()]]
       });
     }
 
@@ -2506,6 +2533,65 @@
       const medicationBox = document.getElementById("prescriptionMedications");
       medicationBox.value = numberPrescriptionText(medicationBox.value);
       printDocument({ title: "Prescription", prescription: true });
+    }
+
+    function extractLineValue(text, labels) {
+      const escapedLabels = labels.map(label => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+      const match = text.match(new RegExp(`^(?:${escapedLabels})\\s*:?\\s*(.+)$`, "im"));
+      return match ? match[1].trim() : "NIL";
+    }
+
+    function extractPrescriptionFromCombinedText(text) {
+      const lines = String(text || "").split("\n").map(line => line.trim()).filter(Boolean);
+      const startIndex = lines.findIndex(line => /^(prescription|rx|medications?\s*\/\s*advice)\s*:?\s*/i.test(line));
+      const fallbackIndex = lines.findIndex(line => /^orders\s*:?\s*$/i.test(line));
+      const index = startIndex >= 0 ? startIndex : fallbackIndex;
+      if (index < 0) return "";
+      const headingPattern = /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|orders|prescription|rx)(?:\s*:|\s*$)/i;
+      const collectSection = (sectionIndex, stripPattern) => {
+        const collected = [];
+        const sameLine = lines[sectionIndex].replace(stripPattern, "").trim();
+        if (sameLine) collected.push(sameLine);
+        for (let cursor = sectionIndex + 1; cursor < lines.length; cursor += 1) {
+          if (headingPattern.test(lines[cursor])) break;
+          collected.push(lines[cursor]);
+        }
+        return collected;
+      };
+      const extracted = collectSection(index, /^(prescription|rx|medications?\s*\/\s*advice|orders)\s*:?\s*/i);
+      if (startIndex >= 0 && fallbackIndex >= 0 && fallbackIndex !== startIndex) {
+        const orderLines = collectSection(fallbackIndex, /^orders\s*:?\s*/i)
+          .filter(line => line && !/^(prescription|rx|advice|medications?)\s*:?\s*$/i.test(line));
+        const existing = new Set(extracted.map(line => line.toLowerCase()));
+        const extraOrders = orderLines.filter(line => !existing.has(line.toLowerCase()));
+        if (extraOrders.length) {
+          if (!extracted.some(line => /^advice\s*:?/i.test(line))) extracted.push("Advice:");
+          extracted.push(...extraOrders);
+        }
+      }
+      return extracted.join("\n").trim();
+    }
+
+    function printCombinedPrescription() {
+      const noteText = document.getElementById("dictationText").value.trim();
+      const prescriptionText = extractPrescriptionFromCombinedText(noteText);
+      if (!prescriptionText) {
+        alert("No prescription section found in this visit note.");
+        return;
+      }
+      const fieldIds = ["prescriptionDate", "prescriptionName", "prescriptionAge", "prescriptionSex", "prescriptionUhid", "prescriptionMedications", "prescriptionCredentials"];
+      const previous = Object.fromEntries(fieldIds.map(id => [id, document.getElementById(id).value]));
+      document.getElementById("prescriptionDate").value = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
+      document.getElementById("prescriptionName").value = extractLineValue(noteText, ["Name", "Patient Name"]);
+      document.getElementById("prescriptionAge").value = extractLineValue(noteText, ["Age", "Patient Age"]);
+      document.getElementById("prescriptionSex").value = extractLineValue(noteText, ["Sex", "Gender", "Patient Sex"]);
+      document.getElementById("prescriptionUhid").value = extractLineValue(noteText, ["UHID", "ID", "Patient ID"]);
+      document.getElementById("prescriptionMedications").value = numberPrescriptionText(prescriptionText);
+      document.getElementById("prescriptionCredentials").value = getDoctorCredentials();
+      printDocument({ title: "Prescription", prescription: true });
+      Object.entries(previous).forEach(([id, value]) => {
+        document.getElementById(id).value = value;
+      });
     }
 
     function printMedicalCertificate() {
@@ -2522,10 +2608,15 @@
 
     document.getElementById("copyDictationButton").addEventListener("click", async event => {
       const button = event.currentTarget;
+      const idleLabel = state.resultMode === "replyLetter"
+        ? "Copy Letter"
+        : state.resultMode === "visitPrescription"
+          ? "Copy Note"
+          : "Copy Dictation";
       button.textContent = "Copied";
       button.disabled = true;
       setTimeout(() => {
-        button.textContent = "Copy Dictation";
+        button.textContent = idleLabel;
         button.disabled = false;
       }, 1400);
       try {
@@ -2563,6 +2654,7 @@
 
     document.getElementById("printVisitButton").addEventListener("click", printVisitNote);
     document.getElementById("printDictationButton").addEventListener("click", printDictation);
+    document.getElementById("printCombinedPrescriptionButton").addEventListener("click", printCombinedPrescription);
     document.getElementById("printPrescriptionButton").addEventListener("click", printPrescription);
     document.getElementById("printCertificateButton").addEventListener("click", printMedicalCertificate);
 

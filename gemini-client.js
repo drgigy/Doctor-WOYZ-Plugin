@@ -247,6 +247,167 @@ Rules:
 `.trim();
 }
 
+function buildReplyLetterPrompt() {
+  return `
+You are a clinical reply letter drafting assistant.
+
+Create a clean reply letter from the dictated audio.
+Correct spelling and grammar and make sentences complete.
+Do not add, infer, assume, or hallucinate any clinical information.
+Do not remove anything that was dictated.
+Return only the requested JSON object.
+
+Use a polite professional letter style.
+Keep the original meaning exactly.
+If a detail is not dictated, omit it. Do not write "Not dictated".
+
+Never add clinical information that was not spoken.
+`.trim();
+}
+
+function buildVisitPrescriptionPrompt() {
+  return `
+You are a clinical note assistant helping a doctor create a concise OPD medical
+note with an embedded prescription from ambient audio.
+
+Correct spelling and grammar. Keep the original meaning exactly.
+Do not add, infer, assume, or hallucinate clinical information.
+If something is unclear, write it as unclear instead of guessing.
+Return only the requested JSON object. Put the complete plain text note in the
+text field. Do not use markdown fences.
+
+Use these headings, in this order, but omit a heading completely if no
+information was dictated for that section:
+
+Chief Complaints:
+
+History of Present Illness:
+
+Past Medical or Surgical History:
+
+Allergies:
+
+Examination Findings:
+
+Review of Investigations:
+
+Current Medications:
+
+Diagnosis:
+
+Orders:
+
+Prescription:
+
+Place the dictated information under the correct heading.
+Do not write "Not dictated".
+Do not create extra headings.
+
+Formatting rules:
+- Chief Complaints: each complaint on a separate line.
+- History of Present Illness: one or two concise paragraphs.
+- Past Medical or Surgical History: line by line.
+- Allergies: line by line.
+- Examination Findings: bullet points or separate lines.
+- Review of Investigations: organize by test/report name and date when
+  dictated. Put each investigation/report as a separate numbered item. Under
+  each imaging/report item, place each finding on a separate line. For blood
+  reports, include each value on a separate line with appropriate units.
+- Current Medications: numbered list, one medicine per line, with dose and
+  frequency if dictated.
+- Diagnosis: line by line.
+- Orders: line by line. If investigations, lab tests, imaging, EEG/NCS, scans,
+  or follow-up tests are ordered, always include them here line by line.
+- Prescription: include only medicines that are prescribed, newly started,
+  changed, or explicitly continued. Do not duplicate the Current Medications
+  section unless those medicines are explicitly prescribed or continued in the
+  visit.
+- Inside Prescription, use exactly these subheadings when relevant:
+  Medications:
+  1. Tablet/Cap/Syrup/Inj brand name dose - clear English patient instruction
+     with timing, duration, and food/administration instruction.
+     Malayalam patient instruction for the same medicine.
+  Advice:
+  - Review/follow-up/investigation instructions line by line
+- Do not write the word "Malayalam" before the Malayalam text. Put the
+  Malayalam instruction directly below the English instruction.
+- For each prescription medicine, keep the medicine name and dose as the first
+  part of the line, then write a clear English instruction. Directly below it,
+  write the same patient-facing instruction in Malayalam when possible.
+- Do not translate medicine brand names into Malayalam. Keep medicine names and
+  doses in English in both English and Malayalam instruction lines.
+- Do not put advice such as "continue medicines", "review after one month", or
+  investigation advice as numbered medicine rows.
+- For each medication, keep brand name and dose clear. Put timing, duration,
+  and before food/after food/empty stomach instructions in the same medication
+  line if dictated.
+- In English prescription instructions, write duration in numeric form only,
+  for example "1 month", "10 days", "2 weeks". Do not write "one month", "one
+  more month", "for one more month", or vague words like "more" or "less".
+- In Malayalam patient instruction lines, spell general counts and durations in
+  Malayalam words instead of English numerals when possible, especially at the
+  start of a line or sentence. Examples: "1 tablet" -> "ഒരു ഗുളിക", "10 days"
+  -> "പത്ത് ദിവസം", "20 days" -> "ഇരുപത് ദിവസം", "1 month" -> "ഒരു മാസം",
+  "2 weeks" -> "രണ്ട് ആഴ്ച".
+- Keep drug names and doses in English/numerals inside Malayalam instruction
+  lines, for example "Gabapin 300 mg" and "Levipil 250 mg" should remain in
+  English.
+- If one duration is dictated for a group of medicines, repeat that duration in
+  every medication line. Do not leave duration implicit or blank for any
+  prescribed medicine when a shared duration was spoken.
+- Always write tablet medicines as "Tablet", not "Tab". When a tablet count is
+  dictated, write it clearly as "1 tablet in the morning", "1 tablet at noon",
+  or "1 tablet at night".
+- When a specific clock time is dictated, keep the clock time in the
+  instruction, for example "1 tablet at 7 AM before food".
+- If only the word evening is dictated without a clock time, write it as night.
+- Do not use internal labels like "morning:", "noon:", "night:", "bedtime:",
+  "Duration:", or "Instructions:" in prescription lines. Write one clear
+  patient-facing sentence after the medicine name.
+- For tapering or step-down prescriptions, create one numbered medication entry
+  for each step. Repeat the same medicine name in each entry. Write the phase
+  clearly in the instruction, for example "First 20 days", "Next 20 days",
+  "Next 20 days, then stop". Put the Malayalam version directly below each
+  English tapering instruction without any label.
+- If a lab appointment, investigation schedule, paper/lab schedule, imaging,
+  EEG, NCS, CT, MRI, blood test, or any investigation order is dictated,
+  include it under Prescription > Advice line by line, even if it is also
+  written under Orders. Do not omit investigation orders from the embedded
+  prescription.
+- Do not repeat the same advice or investigation item in Prescription > Advice.
+  If the same investigation is spoken more than once, include it only once.
+- Do not merge tapering steps into one paragraph. Do not duplicate the same
+  step.
+- Do not include patient demographics inside the Prescription section.
+- Preserve dictated brand names exactly and do not convert them to generic
+  names.
+- Translate clearly dictated colloquial disease names into standard medical
+  terms when they refer to established conditions: "sugar" or "sugar disease"
+  means Diabetes mellitus; "pressure", "BP", or "blood pressure problem" means
+  Hypertension; "cholesterol problem" means Dyslipidemia.
+
+Investigation units:
+Use standard units when values are dictated:
+Haemoglobin g/dL; RBC millions/cumm; WBC cells/cumm; Total count cells/cumm;
+Platelets lakhs/cumm; PCV %; Blood sugar mg/dL; HbA1c %; Creatinine mg/dL;
+Urea mg/dL; Sodium mEq/L; Potassium mEq/L; Chloride mEq/L; Bilirubin mg/dL;
+ALT U/L; AST U/L; ALP U/L; Albumin g/dL; Cholesterol mg/dL; Triglycerides
+mg/dL; HDL mg/dL; LDL mg/dL; TSH mIU/L; INR no unit; PT seconds; APTT seconds;
+ESR mm/hr; CRP mg/L; Troponin ng/mL; Uric Acid mg/dL; Calcium mg/dL; BNP pg/mL.
+
+Example style for Review of Investigations:
+1. MRI Brain with MR Angiogram - 25 April 2026
+   - Acute infarct in the right periventricular white matter.
+   - MR angiography of the circle of Willis is unremarkable.
+2. Blood Report - 23 March 2026
+   - Haemoglobin: 13.6 g/dL
+   - Total count: 13,620 cells/cumm
+   - Platelet count: 2.51 lakhs/cumm
+
+Never add clinical information that was not spoken.
+`.trim();
+}
+
 function buildPrescriptionPrompt() {
   return `
 You are an expert medical prescription transcription assistant. Convert the
@@ -305,6 +466,12 @@ function buildTaskPrompt(mode) {
   }
   if (mode === "medicalCertificate") {
     return "Convert only the clearly dictated facts into the requested medical-certificate JSON. Correct grammar and spelling without adding, removing, or inferring facts.";
+  }
+  if (mode === "replyLetter") {
+    return "Draft a polite professional reply letter from only the clearly dictated facts into the requested JSON text field. Do not add, remove, or infer clinical content.";
+  }
+  if (mode === "visitPrescription") {
+    return "Create one combined visit note with an embedded Prescription section in the requested JSON text field. Use only clearly dictated information.";
   }
   if (mode === "visitDictation") {
     return "Organize only the clearly dictated clinical information into the requested visit-note JSON. Use NIL for every unsupported field.";
@@ -569,22 +736,28 @@ function extractMedicalCertificate(payload) {
 
 async function callGemini({ apiKey, model, audioBase64, mimeType, mode }) {
   const reviewDictationMode = mode === "reviewDictation";
+  const replyLetterMode = mode === "replyLetter";
+  const visitPrescriptionMode = mode === "visitPrescription";
   const prescriptionMode = mode === "prescription";
   const medicalCertificateMode = mode === "medicalCertificate";
-  const schema = medicalCertificateMode
-    ? MEDICAL_CERTIFICATE_SCHEMA
-    : prescriptionMode
-    ? PRESCRIPTION_SCHEMA
-    : reviewDictationMode
-      ? DICTATION_SCHEMA
-      : REPORT_SCHEMA;
-  const prompt = medicalCertificateMode
-    ? buildMedicalCertificatePrompt()
-    : prescriptionMode
-    ? buildPrescriptionPrompt()
-    : reviewDictationMode
-      ? buildDictationPrompt()
-      : buildVisitNotePrompt(mode);
+  let schema = REPORT_SCHEMA;
+  let prompt = buildVisitNotePrompt(mode);
+  if (reviewDictationMode) {
+    schema = DICTATION_SCHEMA;
+    prompt = buildDictationPrompt();
+  } else if (replyLetterMode) {
+    schema = DICTATION_SCHEMA;
+    prompt = buildReplyLetterPrompt();
+  } else if (visitPrescriptionMode) {
+    schema = DICTATION_SCHEMA;
+    prompt = buildVisitPrescriptionPrompt();
+  } else if (prescriptionMode) {
+    schema = PRESCRIPTION_SCHEMA;
+    prompt = buildPrescriptionPrompt();
+  } else if (medicalCertificateMode) {
+    schema = MEDICAL_CERTIFICATE_SCHEMA;
+    prompt = buildMedicalCertificatePrompt();
+  }
   const taskPrompt = buildTaskPrompt(mode);
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
@@ -633,14 +806,14 @@ async function callGemini({ apiKey, model, audioBase64, mimeType, mode }) {
     throw error;
   }
 
-  if (reviewDictationMode) return { text: extractDictation(payload) };
+  if (reviewDictationMode || replyLetterMode || visitPrescriptionMode) return { text: extractDictation(payload) };
   if (prescriptionMode) return { prescription: extractPrescription(payload) };
   if (medicalCertificateMode) return { medicalCertificate: extractMedicalCertificate(payload) };
   return { report: extractReport(payload) };
 }
 
 function normalizeMode(value) {
-  return ["ambient", "reviewDictation", "visitDictation", "prescription", "medicalCertificate"].includes(value)
+  return ["ambient", "reviewDictation", "visitDictation", "prescription", "medicalCertificate", "replyLetter", "visitPrescription"].includes(value)
     ? value
     : "ambient";
 }
@@ -662,7 +835,7 @@ export async function generateVisitNoteDirect({ apiKey, audioBase64, mimeType, m
 
   const models = mode === "ambient"
     ? ["gemini-2.5-flash"]
-    : ["reviewDictation", "medicalCertificate"].includes(mode)
+    : ["reviewDictation", "medicalCertificate", "replyLetter"].includes(mode)
       ? ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
       : ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
   const errors = [];
