@@ -304,6 +304,11 @@ Do not write "Not dictated".
 Do not create extra headings.
 
 Formatting rules:
+- Every heading and subheading must start on its own new line.
+- Put one blank line between major headings.
+- Never join headings with previous text. For example, do not write
+  "Orders:CT BrainPrescription:Medications"; write Orders, Prescription, and
+  Medications on separate lines.
 - Chief Complaints: each complaint on a separate line.
 - History of Present Illness: one or two concise paragraphs.
 - Past Medical or Surgical History: line by line.

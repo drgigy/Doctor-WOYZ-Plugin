@@ -2157,6 +2157,7 @@
     }
 
     function showTextResult(text, mode = "reviewDictation") {
+      const displayText = mode === "visitPrescription" ? normalizeCombinedVisitPrescriptionText(text) : text;
       const labels = {
         reviewDictation: "Review Dictation",
         visitPrescription: "Visit + Prescription",
@@ -2177,7 +2178,7 @@
         mode === "replyLetter" ? "Copy Letter" : mode === "visitPrescription" ? "Copy Note" : "Copy Dictation";
       document.getElementById("printCombinedPrescriptionButton").style.display =
         mode === "visitPrescription" ? "" : "none";
-      document.getElementById("dictationText").value = text || "";
+      document.getElementById("dictationText").value = displayText || "";
       scheduleTextareaResize();
     }
 
@@ -2475,6 +2476,21 @@
         .join("\n\n");
     }
 
+    function normalizeCombinedVisitPrescriptionText(text) {
+      if (!text) return "";
+      return String(text)
+        .replace(/\r\n?/g, "\n")
+        .replace(/[ \t]+/g, " ")
+        .replace(/\s*(Chief Complaints?|History of Present Illness|Past Medical or Surgical History|Allergies|Examination Findings?|Review of Investigations|Current Medications?|Diagnosis|Orders|Prescription|Medications?|Advice|Rx)\s*:/gi, "\n$1:")
+        .replace(/(Medications?\s*:\s*)(\d+[\.)])/gi, "$1\n$2 ")
+        .replace(/(Advice\s*:\s*)[-–—]?\s*/gi, "$1\n")
+        .replace(/([.!?])(?=[\u0D00-\u0D7F])/g, "$1\n")
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean)
+        .join("\n\n");
+    }
+
     function numberPrescriptionText(text) {
       if (!text || text.trim().toUpperCase() === "NIL") return "NIL";
       const lines = text
@@ -2704,9 +2720,10 @@
     }
 
     function extractPrescriptionFromCombinedText(text) {
-      const lines = String(text || "").split("\n").map(line => line.trim()).filter(Boolean);
-      const startIndex = lines.findIndex(line => /^(prescription|rx|medications?\s*\/\s*advice)\s*:?\s*/i.test(line));
-      const fallbackIndex = lines.findIndex(line => /^orders\s*:?\s*$/i.test(line));
+      const normalizedText = normalizeCombinedVisitPrescriptionText(text);
+      const lines = normalizedText.split("\n").map(line => line.trim()).filter(Boolean);
+      const startIndex = lines.findIndex(line => /^(prescription|rx|medications?\s*\/\s*advice|medications?)\s*:?\s*/i.test(line));
+      const fallbackIndex = lines.findIndex(line => /^orders\s*:?/i.test(line));
       const index = startIndex >= 0 ? startIndex : fallbackIndex;
       if (index < 0) return "";
       const headingPattern = /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|orders|prescription|rx)(?:\s*:|\s*$)/i;
@@ -2720,7 +2737,8 @@
         }
         return collected;
       };
-      const extracted = collectSection(index, /^(prescription|rx|medications?\s*\/\s*advice|orders)\s*:?\s*/i);
+      const extracted = collectSection(index, /^(prescription|rx|medications?\s*\/\s*advice|medications?|orders)\s*:?\s*/i)
+        .filter(line => !/^(prescription|rx|medications?\s*\/\s*advice|medications?)\s*:?\s*$/i.test(line));
       if (startIndex >= 0 && fallbackIndex >= 0 && fallbackIndex !== startIndex) {
         const orderLines = collectSection(fallbackIndex, /^orders\s*:?\s*/i)
           .filter(line => line && !/^(prescription|rx|advice|medications?)\s*:?\s*$/i.test(line));

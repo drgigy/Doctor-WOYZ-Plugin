@@ -1,4 +1,4 @@
-const CACHE_NAME = "doctor-woyz-local-gemini-v2";
+const CACHE_NAME = "doctor-woyz-local-gemini-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
