@@ -248,11 +248,17 @@
       letter-spacing: 0;
     }
 
-    .new-button {
+    .nav-buttons {
       position: absolute;
       left: 20px;
       top: 50%;
       transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .new-button {
       display: none;
       align-items: center;
       gap: 8px;
@@ -268,6 +274,11 @@
 
     .new-button.visible {
       display: inline-flex;
+    }
+
+    .forward-button {
+      background: #17181d;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
     }
 
     main {
@@ -1129,10 +1140,14 @@
         white-space: nowrap;
       }
 
-      .new-button {
+      .nav-buttons {
         position: static;
         transform: none;
-        margin-right: auto;
+        margin-left: auto;
+        gap: 6px;
+      }
+
+      .new-button {
         padding: 9px 10px;
       }
 
@@ -1321,10 +1336,16 @@
             <span>WOYZ</span>
           </span>
         </button>
-        <button class="new-button" id="newButton" type="button">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
-          New Scribe
-        </button>
+        <div class="nav-buttons" id="navButtons">
+          <button class="new-button" id="newButton" type="button">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>
+            Back
+          </button>
+          <button class="new-button forward-button" id="forwardButton" type="button">
+            Forward
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -1589,6 +1610,9 @@
       inputMode: "ambient",
       dictationMode: "reviewDictation",
       resultMode: "ambient",
+      currentView: "record",
+      resultReady: false,
+      syncingHistory: false,
       dark: false,
       audioContext: null,
       analyser: null,
@@ -1650,8 +1674,31 @@
       recordView.style.display = view === "record" ? "block" : "none";
       processingView.classList.toggle("visible", view === "processing");
       resultView.classList.toggle("visible", view === "result");
-      document.getElementById("newButton").classList.toggle("visible", view === "result");
+      state.currentView = view;
+      updateNavigationButtons();
       if (view === "result") scheduleTextareaResize();
+    }
+
+    function updateNavigationButtons() {
+      document.getElementById("newButton").classList.toggle("visible", state.currentView !== "record");
+      document.getElementById("forwardButton").classList.toggle("visible", state.currentView === "record" && state.resultReady);
+    }
+
+    function writeHistoryView(view, replace = false) {
+      if (state.syncingHistory || !window.history?.pushState) return;
+      const historyState = { doctorWoyzView: view };
+      if (replace) {
+        history.replaceState(historyState, "", window.location.href);
+      } else {
+        history.pushState(historyState, "", window.location.href);
+      }
+    }
+
+    function showHistoryView(view) {
+      const safeView = ["record", "processing", "result"].includes(view) ? view : "record";
+      state.syncingHistory = true;
+      setView(safeView);
+      state.syncingHistory = false;
     }
 
     function getBackendMode() {
@@ -2031,6 +2078,7 @@
 
     async function processAudio(blob) {
       setView("processing");
+      writeHistoryView("processing");
       const processingText = document.getElementById("processingText");
       const slowProcessingTimers = [
         setTimeout(() => {
@@ -2078,7 +2126,9 @@
       } finally {
         slowProcessingTimers.forEach(clearTimeout);
       }
+      state.resultReady = true;
       setView("result");
+      writeHistoryView("result", true);
     }
 
     function showVisitNoteResult(report, mode = "ambient") {
@@ -2236,6 +2286,7 @@
       state.inputMode = "ambient";
       state.dictationMode = "reviewDictation";
       state.resultMode = "ambient";
+      state.resultReady = false;
       timer.textContent = formatTime(state.maxRecordingSeconds);
       status.textContent = "Tap microphone to start dictation";
       focusBox.classList.remove("recording");
@@ -2243,6 +2294,7 @@
       updateModeUi();
       setIdleControls();
       setView("record");
+      writeHistoryView("record", true);
     }
 
     window.addEventListener("beforeunload", () => {
@@ -2773,7 +2825,21 @@
       setDoctorCredentials(event.currentTarget.value);
     });
     document.getElementById("brandButton").addEventListener("click", resetScribe);
-    document.getElementById("newButton").addEventListener("click", resetScribe);
+    document.getElementById("newButton").addEventListener("click", () => {
+      if (state.currentView !== "record") {
+        window.history.back();
+      } else {
+        resetScribe();
+      }
+    });
+    document.getElementById("forwardButton").addEventListener("click", () => {
+      window.history.forward();
+    });
+    window.addEventListener("popstate", event => {
+      showHistoryView(event.state?.doctorWoyzView || "record");
+    });
+    writeHistoryView("record", true);
+    updateNavigationButtons();
     localStorage.removeItem("opd_demo_ai_model_v2");
     document.querySelectorAll(".section textarea").forEach(textarea => {
       textarea.addEventListener("input", () => resizeTextarea(textarea));
