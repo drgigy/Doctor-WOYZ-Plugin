@@ -549,13 +549,12 @@
     }
 
     .mode-toggle {
-      display: none;
-      border: 1px solid #17181d;
+      border: 4px solid #181818;
       border-radius: 999px;
       color: #ffffff;
       background: #17181d;
-      padding: 11px 19px;
-      font-size: 15px;
+      padding: 15px 32px;
+      font-size: 20px;
       font-weight: 850;
       cursor: pointer;
     }
@@ -568,7 +567,7 @@
     }
 
     .dictation-options {
-      display: flex;
+      display: none;
       gap: 14px;
       flex-wrap: wrap;
       justify-content: center;
@@ -1116,7 +1115,8 @@
       }
 
       .mode-toggle {
-        padding: 9px 16px;
+        padding: 12px 26px;
+        font-size: 18px;
       }
 
       .mode-option {
@@ -1370,7 +1370,7 @@
 
     <main>
       <section class="center" id="recordView">
-        <p class="intro">Review dictation</p>
+        <p class="intro">Ambient Mode</p>
         <div class="card" id="recordCard" tabindex="-1">
           <div class="focus-box" id="focusBox">
             <div class="focus-inner">
@@ -1626,7 +1626,7 @@
       maxRecordingSeconds: 300,
       timerId: null,
       paused: false,
-      inputMode: "dictation",
+      inputMode: "ambient",
       dictationMode: "reviewDictation",
       resultMode: "ambient",
       currentView: "record",
@@ -2306,7 +2306,7 @@
       state.elapsed = 0;
       state.maxRecordingSeconds = DEFAULT_RECORDING_SECONDS;
       state.paused = false;
-      state.inputMode = "dictation";
+      state.inputMode = "ambient";
       state.dictationMode = "reviewDictation";
       state.resultMode = "ambient";
       state.resultReady = false;
