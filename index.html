@@ -530,8 +530,8 @@
       border-radius: 999px;
       color: #ffffff;
       background: #17181d;
-      padding: 9px 15px;
-      font-size: 14px;
+      padding: 11px 19px;
+      font-size: 15px;
       font-weight: 850;
       cursor: pointer;
     }
@@ -539,13 +539,13 @@
     .mode-toggle.active {
       color: #ffffff;
       background: #17181d;
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(255, 69, 69, 0.14);
+      border-color: #b91c1c;
+      box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.16);
     }
 
     .dictation-options {
       display: none;
-      gap: 6px;
+      gap: 9px;
       flex-wrap: wrap;
       justify-content: center;
     }
@@ -555,12 +555,12 @@
     }
 
     .mode-option {
-      border: 1px solid #17181d;
+      border: 2px solid #17181d;
       border-radius: 999px;
       color: #ffffff;
       background: #17181d;
-      padding: 7px 10px;
-      font-size: 12px;
+      padding: 10px 15px;
+      font-size: 14px;
       font-weight: 850;
       cursor: pointer;
     }
@@ -568,8 +568,8 @@
     .mode-option.active {
       color: #ffffff;
       background: #17181d;
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(255, 69, 69, 0.14);
+      border-color: #b91c1c;
+      box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.16);
     }
 
     .pills {
@@ -1088,11 +1088,11 @@
       }
 
       .mode-toggle {
-        padding: 8px 14px;
+        padding: 9px 16px;
       }
 
       .mode-option {
-        padding: 6px 9px;
+        padding: 8px 12px;
       }
     }
 
@@ -1360,7 +1360,6 @@
           <button class="mode-toggle" id="dictationModeToggle" type="button">Mode</button>
           <div class="dictation-options" id="dictationOptions">
             <button class="mode-option active" data-dictation-mode="reviewDictation" type="button">Review Dictation</button>
-            <button class="mode-option" data-dictation-mode="visitDictation" type="button">Visit Note</button>
             <button class="mode-option" data-dictation-mode="prescription" type="button">Prescription</button>
             <button class="mode-option" data-dictation-mode="visitPrescription" type="button">Visit + Prescription</button>
             <button class="mode-option" data-dictation-mode="replyLetter" type="button">Reply Letter</button>
@@ -2557,6 +2556,7 @@
             <div class="content">${formatHtmlText(value)}</div>
           </section>
         `).join("");
+      const printableBody = prescription || certificate ? body : `<h1>${escapeHtml(title)}</h1>${body}`;
       const printWindow = window.open("", "_blank", "width=900,height=700");
       if (!printWindow) return;
       printWindow.document.write(`
@@ -2565,7 +2565,12 @@
           <head>
             <title>${escapeHtml(title)}</title>
             <style>
-              body { font-family: Arial, sans-serif; color: #111827; margin: 36px; line-height: 1.45; }
+              html, body { background: #ffffff !important; min-height: 100%; }
+              body { font-family: Arial, sans-serif; color: #111827; margin: 0; line-height: 1.45; }
+              .print-toolbar { display: flex; gap: 12px; align-items: center; padding: 16px 36px; background: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; }
+              .print-toolbar button { border: 1px solid #ff4545; border-radius: 12px; background: #ffffff; color: #d12626; cursor: pointer; font: 700 15px Arial, sans-serif; padding: 10px 16px; }
+              .print-toolbar .back-button { background: #ff4545; color: #ffffff; box-shadow: 0 10px 24px rgba(255, 69, 69, .18); }
+              .print-page { background: #ffffff; margin: 36px; }
               h1 { margin: 0 0 18px; color: #1f3f8f; font-size: 26px; }
               h2 { margin: 18px 0 6px; color: #334155; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
               section { break-inside: avoid; margin-bottom: 12px; }
@@ -2579,10 +2584,22 @@
               .certificate-body { white-space: normal; font-size: 16px; line-height: 1.8; text-align: justify; margin-top: 12px; }
               .certificate-thanks { margin-top: 42px; font-size: 15px; }
               .certificate-credentials { margin-top: 44px; white-space: normal; text-align: left; font-size: 14px; }
-              @media print { body { margin: 24mm 18mm; } button { display: none; } }
+              @media print {
+                html, body, .print-page { background: #ffffff !important; }
+                body { margin: 24mm 18mm; }
+                .print-toolbar { display: none !important; }
+                .print-page { margin: 0; }
+                button { display: none; }
+              }
             </style>
           </head>
-          <body>${prescription || certificate ? body : `<h1>${escapeHtml(title)}</h1>${body}`}</body>
+          <body>
+            <div class="print-toolbar">
+              <button class="back-button" type="button" onclick="window.close(); setTimeout(() => { if (!window.closed) history.back(); }, 120);">Back</button>
+              <button type="button" onclick="window.print();">Print</button>
+            </div>
+            <main class="print-page">${printableBody}</main>
+          </body>
         </html>
       `);
       printWindow.document.close();
