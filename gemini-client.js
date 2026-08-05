@@ -271,15 +271,21 @@ Rules:
 - The first line must be exactly "To,".
 - Put the dictated recipient doctor's name, credentials, department, hospital,
   or address in the next lines exactly as dictated.
+- If the recipient block has multiple parts, put each part on its own line,
+  for example doctor name, designation, hospital, city/place.
+- Leave one blank line after the recipient doctor's block before starting the
+  clinical paragraph.
 - Do not write "Dear Doctor", "Dear Sir", "Sir", "Madam", "Respected", or any
   salutation.
+- Do not write a title or heading such as "Reply Letter".
 - Start the clinical paragraph directly from the left-hand side after the
   recipient block.
 - Put "Thank you" at the end, one blank line below the final paragraph.
 - Do not include the sender doctor's name, credentials, signature, or footer;
   the app adds those from Settings during print.
 - Keep the original meaning exactly.
-If a detail is not dictated, omit it. Do not write "Not dictated".
+If a detail is not dictated, omit it. Do not write "NIL", "Not dictated", or
+any placeholder line.
 
 Never add clinical information that was not spoken.
 `.trim();

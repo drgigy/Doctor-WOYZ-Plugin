@@ -724,7 +724,8 @@
       border-top: 1px solid var(--line);
     }
 
-    .credentials-field textarea {
+    .credentials-field textarea,
+    .print-header-editor {
       width: 100%;
       min-height: 96px;
       border: 1px solid var(--line);
@@ -737,7 +738,30 @@
       resize: vertical;
     }
 
-    .credentials-field textarea:focus {
+    .print-header-editor {
+      overflow: auto;
+      resize: vertical;
+    }
+
+    .print-header-editor:empty::before {
+      content: attr(data-placeholder);
+      color: var(--muted);
+    }
+
+    .print-header-editor .print-header-size-small {
+      font-size: 13px;
+    }
+
+    .print-header-editor .print-header-size-medium {
+      font-size: 16px;
+    }
+
+    .print-header-editor .print-header-size-large {
+      font-size: 20px;
+    }
+
+    .credentials-field textarea:focus,
+    .print-header-editor:focus {
       border-color: var(--blue);
       box-shadow: 0 0 0 3px rgba(255, 69, 69, 0.16);
     }
@@ -766,6 +790,21 @@
       background: var(--bg);
       padding: 7px 9px;
       font: 700 13px/1.2 Inter, system-ui, sans-serif;
+    }
+
+    .template-format-button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--text);
+      background: var(--bg);
+      padding: 7px 10px;
+      font: 800 13px/1.2 Inter, system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    .template-format-button:active {
+      transform: translateY(1px);
     }
 
     .remove-key {
@@ -1629,14 +1668,14 @@
         </div>
         <div class="credentials-field">
           <p class="settings-title">Print Header</p>
-          <textarea id="printHeaderInput" placeholder="Header text for printed notes&#10;Clinic name / doctor details / contact"></textarea>
+          <div id="printHeaderEditor" class="print-header-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Header text for printed notes&#10;Clinic name / doctor details / contact"></div>
           <div class="template-style-row">
-            <label><input id="printHeaderBoldInput" type="checkbox"> Bold</label>
-            <label><input id="printHeaderItalicInput" type="checkbox"> Italic</label>
+            <button class="template-format-button" id="printHeaderBoldButton" type="button">Bold</button>
+            <button class="template-format-button" id="printHeaderItalicButton" type="button">Italic</button>
             <label for="printHeaderSizeInput">Size</label>
             <select id="printHeaderSizeInput">
               <option value="small">Small</option>
-              <option value="medium">Medium</option>
+              <option value="medium" selected>Medium</option>
               <option value="large">Large</option>
             </select>
           </div>
@@ -1657,9 +1696,6 @@
 
     const API_KEY_STORAGE_KEY = "doctor_woyz_gemini_api_key";
     const PRINT_HEADER_STORAGE_KEY = "doctor_woyz_print_header";
-    const PRINT_HEADER_BOLD_STORAGE_KEY = "doctor_woyz_print_header_bold";
-    const PRINT_HEADER_ITALIC_STORAGE_KEY = "doctor_woyz_print_header_italic";
-    const PRINT_HEADER_SIZE_STORAGE_KEY = "doctor_woyz_print_header_size";
 
     const state = {
       mediaRecorder: null,
@@ -2215,7 +2251,11 @@
     }
 
     function showTextResult(text, mode = "reviewDictation") {
-      const displayText = mode === "visitPrescription" ? normalizeCombinedVisitPrescriptionText(text) : text;
+      const displayText = mode === "visitPrescription"
+        ? normalizeCombinedVisitPrescriptionText(text)
+        : mode === "replyLetter"
+          ? normalizeReplyLetterText(text)
+          : text;
       const labels = {
         reviewDictation: "Review Dictation",
         visitPrescription: "Visit + Prescription",
@@ -2523,29 +2563,13 @@
     }
 
     function getPrintHeaderSettings() {
-      const savedSize = localStorage.getItem(PRINT_HEADER_SIZE_STORAGE_KEY);
       return {
-        text: localStorage.getItem(PRINT_HEADER_STORAGE_KEY) || "",
-        bold: localStorage.getItem(PRINT_HEADER_BOLD_STORAGE_KEY) === "true",
-        italic: localStorage.getItem(PRINT_HEADER_ITALIC_STORAGE_KEY) === "true",
-        size: ["small", "medium", "large"].includes(savedSize) ? savedSize : "medium"
+        html: sanitizePrintHeaderHtml(localStorage.getItem(PRINT_HEADER_STORAGE_KEY) || "")
       };
     }
 
-    function setPrintHeaderText(value) {
-      localStorage.setItem(PRINT_HEADER_STORAGE_KEY, value);
-    }
-
-    function setPrintHeaderBold(value) {
-      localStorage.setItem(PRINT_HEADER_BOLD_STORAGE_KEY, value ? "true" : "false");
-    }
-
-    function setPrintHeaderItalic(value) {
-      localStorage.setItem(PRINT_HEADER_ITALIC_STORAGE_KEY, value ? "true" : "false");
-    }
-
-    function setPrintHeaderSize(value) {
-      localStorage.setItem(PRINT_HEADER_SIZE_STORAGE_KEY, ["small", "medium", "large"].includes(value) ? value : "medium");
+    function setPrintHeaderHtml(value) {
+      localStorage.setItem(PRINT_HEADER_STORAGE_KEY, sanitizePrintHeaderHtml(value));
     }
 
     function activeVisitFields() {
@@ -2573,6 +2597,35 @@
         .map(line => line.trim())
         .filter(Boolean)
         .join("\n\n");
+    }
+
+    function normalizeReplyLetterText(text) {
+      const lines = String(text || "")
+        .replace(/\r\n?/g, "\n")
+        .split("\n")
+        .map(line => line.trim())
+        .filter(line => line && !/^nil$/i.test(line) && !/^reply\s+letter\s*:?$/i.test(line));
+      if (!lines.length) return "";
+      const toIndex = lines.findIndex(line => /^to,?$/i.test(line));
+      const withoutThanks = lines
+        .slice(toIndex >= 0 ? toIndex + 1 : 0)
+        .filter(line => !/^thank you\.?$/i.test(line));
+      const firstParagraphIndex = withoutThanks.findIndex((line, index) => {
+        if (index === 0) return false;
+        return /^(mr|mrs|ms|miss|master|patient|this|he|she|the)\b\.?/i.test(line) || /[.!?]$/.test(line);
+      });
+      const recipientLines = firstParagraphIndex >= 0
+        ? withoutThanks.slice(0, firstParagraphIndex)
+        : withoutThanks.slice(0, Math.min(withoutThanks.length, 4));
+      const paragraphLines = firstParagraphIndex >= 0
+        ? withoutThanks.slice(firstParagraphIndex)
+        : withoutThanks.slice(recipientLines.length);
+      return [
+        "To,",
+        recipientLines.join("\n"),
+        paragraphLines.join("\n\n"),
+        "Thank you"
+      ].filter(Boolean).join("\n\n");
     }
 
     function numberPrescriptionText(text) {
@@ -2669,6 +2722,10 @@
       return escapeHtml(value || "NIL").replace(/\n/g, "<br>");
     }
 
+    function formatOptionalHtmlText(value) {
+      return escapeHtml(value || "").replace(/\n/g, "<br>");
+    }
+
     function formatCredentialsHtml(value) {
       const lines = String(value || "").split("\n");
       if (!lines.some(line => line.trim())) return "";
@@ -2683,8 +2740,34 @@
         .join("<br>");
     }
 
+    function sanitizePrintHeaderHtml(value) {
+      const raw = String(value || "");
+      if (!/<[a-z][\s\S]*>/i.test(raw)) return formatOptionalHtmlText(raw.trim());
+      const template = document.createElement("template");
+      template.innerHTML = raw;
+      const allowedTags = new Set(["DIV", "BR", "B", "I", "STRONG", "EM", "SPAN"]);
+      const allowedClasses = new Set(["print-header-size-small", "print-header-size-medium", "print-header-size-large"]);
+      const cleanNode = node => {
+        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent || "");
+        if (node.nodeType !== Node.ELEMENT_NODE) return document.createTextNode("");
+        const tagName = node.tagName;
+        const replacement = allowedTags.has(tagName)
+          ? document.createElement(tagName.toLowerCase())
+          : document.createDocumentFragment();
+        if (tagName === "SPAN") {
+          const safeClasses = [...node.classList].filter(className => allowedClasses.has(className));
+          if (safeClasses.length) replacement.className = safeClasses.join(" ");
+        }
+        [...node.childNodes].forEach(child => replacement.appendChild(cleanNode(child)));
+        return replacement;
+      };
+      const wrapper = document.createElement("div");
+      [...template.content.childNodes].forEach(child => wrapper.appendChild(cleanNode(child)));
+      return wrapper.innerHTML.trim();
+    }
+
     function formatPrintHeaderHtml(settings) {
-      return formatHtmlText(settings.text || "\u00A0");
+      return settings.html || "\u00A0";
     }
 
     function patientMetaLine() {
@@ -2779,25 +2862,33 @@
     }
 
     function replyLetterPrintHtml(text) {
-      const normalized = String(text || "NIL").trim();
-      if (!normalized || normalized.toUpperCase() === "NIL") return '<div class="reply-letter-body">NIL</div>';
-      const blocks = normalized.split(/\n\s*\n/).map(block => block.trim()).filter(Boolean);
-      const thankIndex = blocks.findIndex(block => /^thank you\.?$/i.test(block));
-      const contentBlocks = thankIndex >= 0 ? blocks.slice(0, thankIndex) : blocks;
-      const thanksLine = thankIndex >= 0 ? blocks[thankIndex] : "Thank you";
-      const recipientBlock = contentBlocks[0] || "";
-      const recipientLines = recipientBlock
+      const normalized = normalizeReplyLetterText(text);
+      const usefulLines = normalized
+        .replace(/\r\n?/g, "\n")
         .split("\n")
         .map(line => line.trim())
-        .filter(Boolean)
-        .filter(line => !/^to,?$/i.test(line));
-      const paragraphBlocks = contentBlocks.slice(1);
+        .filter(line => line && !/^nil$/i.test(line) && !/^reply\s+letter\s*:?$/i.test(line));
+      if (!usefulLines.length) return '<div class="reply-letter-body"></div>';
+      const withoutThanks = usefulLines.filter(line => !/^thank you\.?$/i.test(line));
+      const thanksLine = usefulLines.some(line => /^thank you\.?$/i.test(line)) ? "Thank you" : "Thank you";
+      const toIndex = withoutThanks.findIndex(line => /^to,?$/i.test(line));
+      const contentLines = withoutThanks.slice(toIndex >= 0 ? toIndex + 1 : 0);
+      const firstParagraphIndex = contentLines.findIndex((line, index) => {
+        if (index === 0) return false;
+        return /^(mr|mrs|ms|miss|master|patient|this|he|she|the)\b\.?/i.test(line) || /[.!?]$/.test(line);
+      });
+      const recipientLines = firstParagraphIndex >= 0
+        ? contentLines.slice(0, firstParagraphIndex)
+        : contentLines.slice(0, Math.min(contentLines.length, 3));
+      const paragraphLines = firstParagraphIndex >= 0
+        ? contentLines.slice(firstParagraphIndex)
+        : contentLines.slice(recipientLines.length);
       return `
         <div class="reply-letter">
           <div class="reply-to">To,</div>
-          ${recipientLines.length ? `<div class="reply-recipient">${recipientLines.map(formatHtmlText).join("<br>")}</div>` : ""}
-          <div class="reply-letter-body">${formatHtmlText(paragraphBlocks.join("\n\n") || "NIL")}</div>
-          <div class="reply-thanks">${formatHtmlText(thanksLine.replace(/\.$/, ""))}</div>
+          ${recipientLines.length ? `<div class="reply-recipient">${recipientLines.map(formatOptionalHtmlText).join("<br>")}</div>` : ""}
+          <div class="reply-letter-body">${formatOptionalHtmlText(paragraphLines.join("\n\n"))}</div>
+          <div class="reply-thanks">${formatOptionalHtmlText(thanksLine)}</div>
         </div>
       `;
     }
@@ -2827,16 +2918,10 @@
       const credentialsHtml = formatCredentialsHtml(getDoctorCredentials());
       const credentialsBlock = credentialsHtml ? `<div class="print-credentials ${replyLetter ? "reply-credentials" : ""}">${credentialsHtml}</div>` : "";
       const headerSettings = getPrintHeaderSettings();
-      const headerClasses = [
-        "template-header",
-        headerSettings.size,
-        headerSettings.bold ? "bold" : "",
-        headerSettings.italic ? "italic" : ""
-      ].filter(Boolean).join(" ");
       const printableContent = `${prescription || certificate || replyLetter ? body : `<h1>${escapeHtml(title)}</h1>${body}`}${credentialsBlock}`;
       const printableBody = `
         <div class="print-template">
-          <div class="${headerClasses}">${formatPrintHeaderHtml(headerSettings)}</div>
+          <div class="template-header">${formatPrintHeaderHtml(headerSettings)}</div>
           <div class="template-content">${printableContent}</div>
         </div>
       `;
@@ -2855,11 +2940,9 @@
             #printPreview .print-page { display: block !important; width: auto !important; max-width: none !important; min-height: 0 !important; background: #ffffff; margin: 0; padding: 0 !important; box-sizing: border-box; }
             #printPreview .print-template { min-height: 100vh; background: #ffffff; }
             #printPreview .template-header { min-height: 118px; background: #e8edf3; color: #000000; padding: 28px 44px; box-sizing: border-box; white-space: normal; line-height: 1.22; font-size: 15px; font-weight: 400; }
-            #printPreview .template-header.small { font-size: 13px; }
-            #printPreview .template-header.medium { font-size: 15px; }
-            #printPreview .template-header.large { font-size: 18px; }
-            #printPreview .template-header.bold { font-weight: 700; }
-            #printPreview .template-header.italic { font-style: italic; }
+            #printPreview .template-header .print-header-size-small { font-size: 13px; }
+            #printPreview .template-header .print-header-size-medium { font-size: 15px; }
+            #printPreview .template-header .print-header-size-large { font-size: 18px; }
             #printPreview .template-content { padding: 28px 44px 0; box-sizing: border-box; }
             #printPreview h1 { margin: 0 0 18px; color: #111827; font-size: 26px; }
             #printPreview h2 { margin: 22px 0 12px; color: #004270; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
@@ -3093,25 +3176,79 @@
     }
 
     const printHeaderSettings = getPrintHeaderSettings();
-    const printHeaderInput = document.getElementById("printHeaderInput");
-    const printHeaderBoldInput = document.getElementById("printHeaderBoldInput");
-    const printHeaderItalicInput = document.getElementById("printHeaderItalicInput");
+    const printHeaderEditor = document.getElementById("printHeaderEditor");
+    const printHeaderBoldButton = document.getElementById("printHeaderBoldButton");
+    const printHeaderItalicButton = document.getElementById("printHeaderItalicButton");
     const printHeaderSizeInput = document.getElementById("printHeaderSizeInput");
-    printHeaderInput.value = printHeaderSettings.text;
-    printHeaderBoldInput.checked = printHeaderSettings.bold;
-    printHeaderItalicInput.checked = printHeaderSettings.italic;
-    printHeaderSizeInput.value = printHeaderSettings.size;
-    printHeaderInput.addEventListener("input", event => {
-      setPrintHeaderText(event.currentTarget.value);
+    let printHeaderSelection = null;
+
+    function savePrintHeaderSelection() {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      const range = selection.getRangeAt(0);
+      if (printHeaderEditor.contains(range.commonAncestorContainer)) {
+        printHeaderSelection = range.cloneRange();
+      }
+    }
+
+    function restorePrintHeaderSelection() {
+      printHeaderEditor.focus();
+      if (!printHeaderSelection) return;
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(printHeaderSelection);
+    }
+
+    function savePrintHeaderEditor() {
+      setPrintHeaderHtml(printHeaderEditor.innerHTML);
+    }
+
+    function applyPrintHeaderCommand(command) {
+      restorePrintHeaderSelection();
+      document.execCommand(command, false, null);
+      savePrintHeaderSelection();
+      savePrintHeaderEditor();
+    }
+
+    function applyPrintHeaderSize(size) {
+      restorePrintHeaderSelection();
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount || selection.isCollapsed) return;
+      const range = selection.getRangeAt(0);
+      const span = document.createElement("span");
+      span.className = `print-header-size-${["small", "medium", "large"].includes(size) ? size : "medium"}`;
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+      range.selectNodeContents(span);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      savePrintHeaderSelection();
+      savePrintHeaderEditor();
+    }
+
+    printHeaderEditor.innerHTML = printHeaderSettings.html;
+    printHeaderEditor.addEventListener("input", savePrintHeaderEditor);
+    printHeaderEditor.addEventListener("keyup", savePrintHeaderSelection);
+    printHeaderEditor.addEventListener("mouseup", savePrintHeaderSelection);
+    printHeaderEditor.addEventListener("paste", event => {
+      event.preventDefault();
+      const text = event.clipboardData?.getData("text/plain") || "";
+      document.execCommand("insertText", false, text);
+      savePrintHeaderEditor();
     });
-    printHeaderBoldInput.addEventListener("change", event => {
-      setPrintHeaderBold(event.currentTarget.checked);
+    document.addEventListener("selectionchange", savePrintHeaderSelection);
+    [printHeaderBoldButton, printHeaderItalicButton].forEach(button => {
+      button.addEventListener("mousedown", event => event.preventDefault());
     });
-    printHeaderItalicInput.addEventListener("change", event => {
-      setPrintHeaderItalic(event.currentTarget.checked);
+    printHeaderBoldButton.addEventListener("click", () => {
+      applyPrintHeaderCommand("bold");
     });
+    printHeaderItalicButton.addEventListener("click", () => {
+      applyPrintHeaderCommand("italic");
+    });
+    printHeaderSizeInput.addEventListener("mousedown", savePrintHeaderSelection);
     printHeaderSizeInput.addEventListener("change", event => {
-      setPrintHeaderSize(event.currentTarget.value);
+      applyPrintHeaderSize(event.currentTarget.value);
     });
 
     const doctorCredentialsInput = document.getElementById("doctorCredentialsInput");
