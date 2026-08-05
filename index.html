@@ -286,25 +286,25 @@
       width: 100%;
       display: flex;
       justify-content: center;
-      padding: 18px 42px 22px;
+      padding: 12px 42px 16px;
     }
 
     .center {
-      width: min(100%, 980px);
+      width: min(100%, 735px);
       align-self: flex-start;
       text-align: center;
     }
 
     #recordView {
-      max-height: calc(100dvh - 112px - 52px);
+      max-height: calc(100dvh - 112px - 38px);
       overflow: hidden;
     }
 
     .intro {
-      margin: 0 auto 14px;
+      margin: 0 auto 10px;
       max-width: 560px;
       color: var(--muted);
-      font-size: 22px;
+      font-size: 17px;
       line-height: 1.3;
       font-weight: 650;
     }
@@ -313,9 +313,9 @@
       position: relative;
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 26px;
+      border-radius: 20px;
       box-shadow: var(--shadow);
-      padding: 26px 36px 22px;
+      padding: 20px 27px 17px;
     }
 
     .card:focus {
@@ -329,15 +329,15 @@
 
     .focus-box {
       position: relative;
-      min-height: 166px;
+      min-height: 125px;
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 20px;
       background: #101010;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       display: grid;
       place-items: center;
-      padding: 18px 36px;
+      padding: 14px 27px;
     }
 
     .focus-inner {
@@ -346,7 +346,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .focus-extend {
@@ -362,27 +362,27 @@
 
     .waveform-wrap {
       width: 100%;
-      height: 74px;
+      height: 56px;
       position: relative;
       overflow: hidden;
       display: block;
-      padding: 8px 10px;
+      padding: 6px 8px;
       border: 1px solid #303033;
-      border-radius: 18px;
+      border-radius: 14px;
       background: #0e0e0f;
       box-shadow: none;
     }
 
     .waveform-canvas {
       width: 100%;
-      height: 56px;
+      height: 42px;
       display: block;
     }
 
     .timer-label {
       margin-top: 0;
       color: var(--muted);
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -394,7 +394,7 @@
       align-items: center;
       justify-content: center;
       gap: 12px;
-      min-height: 84px;
+      min-height: 64px;
     }
 
     .control-item {
@@ -440,15 +440,15 @@
     }
 
     .round.record {
-      width: 92px;
-      height: 92px;
+      width: 69px;
+      height: 69px;
       background: var(--blue);
-      box-shadow: 0 0 0 6px rgba(10, 10, 10, 0.74);
+      box-shadow: 0 0 0 5px rgba(10, 10, 10, 0.74);
     }
 
     .round.record svg {
-      width: 36px;
-      height: 36px;
+      width: 27px;
+      height: 27px;
     }
 
     .round.pause {
@@ -460,13 +460,13 @@
     }
 
     .extend-button {
-      min-height: 44px;
+      min-height: 34px;
       border: 1px solid #fecdd3;
       border-radius: 12px;
       color: var(--blue-dark);
       background: #fff1f2;
-      padding: 10px 13px;
-      font-size: 13px;
+      padding: 8px 11px;
+      font-size: 12px;
       font-weight: 800;
       cursor: pointer;
       box-shadow: 0 10px 22px rgba(255, 69, 69, 0.12);
@@ -497,15 +497,15 @@
     }
 
     .timer {
-      font: 800 46px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font: 800 35px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       color: var(--text);
     }
 
     .status {
-      min-height: 26px;
-      margin-top: 8px;
+      min-height: 20px;
+      margin-top: 6px;
       color: var(--muted);
-      font-size: 20px;
+      font-size: 15px;
       font-weight: 650;
     }
 
@@ -542,10 +542,10 @@
     }
 
     .mode-panel {
-      margin: 18px auto 0;
+      margin: 14px auto 0;
       display: grid;
       justify-items: center;
-      gap: 14px;
+      gap: 11px;
     }
 
     .mode-toggle {
@@ -553,8 +553,8 @@
       border-radius: 999px;
       color: #ffffff;
       background: #17181d;
-      padding: 15px 32px;
-      font-size: 20px;
+      padding: 11px 24px;
+      font-size: 15px;
       font-weight: 850;
       cursor: pointer;
     }
@@ -568,10 +568,10 @@
 
     .dictation-options {
       display: none;
-      gap: 14px;
+      gap: 11px;
       flex-wrap: wrap;
       justify-content: center;
-      max-width: 900px;
+      max-width: 675px;
     }
 
     .dictation-options.visible {
@@ -579,13 +579,13 @@
     }
 
     .mode-option {
-      min-width: 184px;
-      border: 4px solid #181818;
+      min-width: 138px;
+      border: 3px solid #181818;
       border-radius: 999px;
       color: #ffffff;
       background: #181818;
-      padding: 15px 26px;
-      font-size: 20px;
+      padding: 11px 20px;
+      font-size: 15px;
       font-weight: 850;
       cursor: pointer;
     }
@@ -1034,7 +1034,7 @@
 
     @media (min-width: 721px) and (max-height: 820px) {
       #recordView {
-        max-height: calc(100dvh - 86px - 38px);
+        max-height: calc(100dvh - 86px - 28px);
       }
 
       .topbar-inner {
@@ -1060,69 +1060,69 @@
       }
 
       main {
-        padding: 14px 42px 16px;
+        padding: 10px 42px 12px;
       }
 
       .intro {
-        margin-bottom: 10px;
-        font-size: 19px;
+        margin-bottom: 8px;
+        font-size: 14px;
         line-height: 1.3;
       }
 
       .card {
-        padding: 22px 34px 18px;
+        padding: 17px 26px 14px;
       }
 
       .focus-box {
-        min-height: 150px;
-        margin-bottom: 12px;
-        padding: 14px 34px;
+        min-height: 112px;
+        margin-bottom: 9px;
+        padding: 11px 26px;
       }
 
       .focus-inner {
-        gap: 8px;
+        gap: 6px;
       }
 
       .waveform-wrap {
-        height: 64px;
+        height: 48px;
       }
 
       .waveform-canvas {
-        height: 46px;
+        height: 34px;
       }
 
       .timer {
-        font-size: 42px;
+        font-size: 32px;
       }
 
       .controls {
-        min-height: 72px;
+        min-height: 54px;
       }
 
       .round.record {
-        width: 82px;
-        height: 82px;
+        width: 62px;
+        height: 62px;
       }
 
       .status {
         margin-top: 2px;
-        font-size: 18px;
+        font-size: 14px;
       }
 
       .mode-panel {
-        margin-top: 12px;
-        gap: 12px;
+        margin-top: 9px;
+        gap: 9px;
       }
 
       .mode-toggle {
-        padding: 12px 26px;
-        font-size: 18px;
+        padding: 9px 20px;
+        font-size: 14px;
       }
 
       .mode-option {
-        min-width: 170px;
-        padding: 12px 24px;
-        font-size: 18px;
+        min-width: 128px;
+        padding: 9px 18px;
+        font-size: 14px;
       }
     }
 
@@ -1298,7 +1298,7 @@
 
     @media (min-width: 721px) and (max-width: 1180px) and (pointer: coarse) {
       .card.recording-controls {
-        padding-bottom: 116px;
+        padding-bottom: 88px;
       }
 
       .card.recording-controls .focus-box {
@@ -1309,8 +1309,8 @@
         position: absolute;
         left: 0;
         right: 0;
-        bottom: 24px;
-        min-height: 72px;
+        bottom: 18px;
+        min-height: 54px;
         pointer-events: none;
       }
 
@@ -1321,16 +1321,16 @@
       }
 
       .card.recording-controls .pause-control {
-        left: 24px;
+        left: 18px;
       }
 
       .card.recording-controls .stop-control {
-        right: 24px;
+        right: 18px;
       }
 
       .card.recording-controls .round {
-        width: 72px;
-        height: 72px;
+        width: 54px;
+        height: 54px;
       }
     }
 
