@@ -365,18 +365,48 @@
       height: 56px;
       position: relative;
       overflow: hidden;
-      display: block;
-      padding: 6px 8px;
+      display: grid;
+      place-items: center;
+      padding: 8px 12px;
       border: 1px solid #303033;
       border-radius: 14px;
       background: #0e0e0f;
       box-shadow: none;
     }
 
-    .waveform-canvas {
-      width: 100%;
-      height: 42px;
-      display: block;
+    .waveform-meter {
+      width: min(420px, 76%);
+      height: 34px;
+      display: grid;
+      grid-template-columns: repeat(28, 1fr);
+      gap: 3px;
+      align-items: end;
+      padding: 1px 0;
+    }
+
+    .waveform-meter span {
+      height: 4px;
+      border-radius: 999px 999px 3px 3px;
+      background: rgba(255, 81, 74, 0.22);
+      opacity: 0.65;
+      transition: height 0.08s linear, background 0.08s linear, opacity 0.08s linear;
+    }
+
+    .waveform-meter span.active {
+      background: #ff514a;
+      opacity: 1;
+    }
+
+    .waveform-meter span:nth-child(3n+1).active {
+      height: 14px;
+    }
+
+    .waveform-meter span:nth-child(3n+2).active {
+      height: 25px;
+    }
+
+    .waveform-meter span:nth-child(3n).active {
+      height: 32px;
     }
 
     .timer-label {
@@ -1154,7 +1184,7 @@
         height: 48px;
       }
 
-      .waveform-canvas {
+      .waveform-meter {
         height: 34px;
       }
 
@@ -1442,7 +1472,12 @@
           <div class="focus-box" id="focusBox">
             <div class="focus-inner">
               <div class="waveform-wrap" aria-hidden="true">
-                <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+                <div class="waveform-meter" id="waveformMeter">
+                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
               </div>
               <div class="timer-label">Remaining</div>
               <div class="timer" id="timer">05:00</div>
@@ -1718,8 +1753,7 @@
       audioContext: null,
       analyser: null,
       animationId: null,
-      waveformLevel: 0,
-      waveformPhase: 0
+      waveformData: null
     };
 
     const recordView = document.getElementById("recordView");
@@ -1730,7 +1764,7 @@
     const controls = document.getElementById("controls");
     const timer = document.getElementById("timer");
     const status = document.getElementById("status");
-    const waveformCanvas = document.getElementById("waveformCanvas");
+    const waveformMeter = document.getElementById("waveformMeter");
     const waveformWrap = document.querySelector(".waveform-wrap");
     const DEFAULT_RECORDING_SECONDS = 300;
     const EXTEND_SECONDS = 300;
@@ -1873,33 +1907,23 @@
         await state.audioContext.resume();
       }
       state.analyser = state.audioContext.createAnalyser();
-      state.analyser.fftSize = 2048;
-      state.waveformLevel = 0;
-      state.waveformPhase = 0;
+      state.analyser.fftSize = 256;
+      state.waveformData = new Uint8Array(state.analyser.fftSize);
       const source = state.audioContext.createMediaStreamSource(stream);
       source.connect(state.analyser);
       renderWaveform();
     }
 
-    function sizeWaveformCanvas() {
-      const rect = waveformCanvas.getBoundingClientRect();
-      const pixelRatio = window.devicePixelRatio || 1;
-      const width = Math.max(1, Math.floor(rect.width * pixelRatio));
-      const height = Math.max(1, Math.floor(rect.height * pixelRatio));
-      if (waveformCanvas.width !== width || waveformCanvas.height !== height) {
-        waveformCanvas.width = width;
-        waveformCanvas.height = height;
-      }
-      const context = waveformCanvas.getContext("2d");
-      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-      return { width: rect.width, height: rect.height };
+    function setWaveformLevel(level = 0) {
+      const activeBars = Math.min(28, Math.max(0, Math.round(level * 95)));
+      [...waveformMeter.children].forEach((bar, index) => {
+        bar.classList.toggle("active", index < activeBars);
+      });
     }
 
     function drawFlatWaveform() {
       waveformWrap.classList.add("active");
-      const context = waveformCanvas.getContext("2d");
-      const { width, height } = sizeWaveformCanvas();
-      context.clearRect(0, 0, width, height);
+      setWaveformLevel();
     }
 
     function showIdleWaveformMark() {
@@ -1909,56 +1933,22 @@
     }
 
     function renderWaveform() {
-      if (!waveformCanvas) return;
+      if (!waveformMeter) return;
       waveformWrap.classList.add("active");
-      const context = waveformCanvas.getContext("2d");
-      const { width, height } = sizeWaveformCanvas();
-      const centerY = height / 2;
-      context.clearRect(0, 0, width, height);
 
-      if (!state.analyser || !state.mediaRecorder || state.mediaRecorder.state !== "recording") {
+      if (!state.analyser || !state.waveformData || !state.mediaRecorder || state.mediaRecorder.state !== "recording") {
         drawFlatWaveform();
         return;
       }
 
-      const data = new Uint8Array(state.analyser.fftSize);
-      state.analyser.getByteTimeDomainData(data);
+      state.analyser.getByteTimeDomainData(state.waveformData);
       let sum = 0;
-      for (let index = 0; index < data.length; index += 1) {
-        const sample = (data[index] - 128) / 128;
+      for (let index = 0; index < state.waveformData.length; index += 1) {
+        const sample = (state.waveformData[index] - 128) / 128;
         sum += sample * sample;
       }
-      const rms = Math.sqrt(sum / data.length);
-      const targetLevel = Math.max(0, Math.min(1, (rms - 0.012) * 13));
-      state.waveformLevel = state.waveformLevel * 0.78 + targetLevel * 0.22;
-      state.waveformPhase += 0.16;
-      const bars = [0.38, 0.58, 0.48, 0.68, 0.78, 0.54, 0.9, 0.62, 0.76, 0.46, 0.7, 0.86, 0.58, 0.78, 0.5, 0.66, 0.82, 0.56];
-      const barWidth = Math.max(5, Math.min(9, width / 110));
-      const gap = Math.max(6, barWidth * 1.1);
-      const totalWidth = bars.length * barWidth + (bars.length - 1) * gap;
-      const startX = (width - totalWidth) / 2;
-      const visibleBars = state.waveformLevel < 0.08 ? 0 : Math.ceil(state.waveformLevel * bars.length);
-      if (!visibleBars) {
-        state.animationId = requestAnimationFrame(renderWaveform);
-        return;
-      }
-      context.lineWidth = barWidth;
-      context.lineCap = "round";
-      context.strokeStyle = "#ef4f4f";
-      context.shadowColor = "rgba(239, 79, 79, 0.28)";
-      context.shadowBlur = 8;
-      bars.forEach((base, index) => {
-        if (index >= visibleBars) return;
-        const pulse = 0.22 * Math.sin(state.waveformPhase + index * 0.82);
-        const level = Math.max(0.18, Math.min(1, base + pulse + state.waveformLevel * 0.45));
-        const halfHeight = Math.min(height * 0.43, height * level * 0.38);
-        const x = startX + index * (barWidth + gap) + barWidth / 2;
-        context.beginPath();
-        context.moveTo(x, centerY - halfHeight);
-        context.lineTo(x, centerY + halfHeight);
-        context.stroke();
-      });
-      context.shadowBlur = 0;
+      const level = Math.sqrt(sum / state.waveformData.length);
+      setWaveformLevel(level);
       state.animationId = requestAnimationFrame(renderWaveform);
     }
 
@@ -2110,6 +2100,7 @@
         await state.audioContext.close().catch(() => {});
         state.audioContext = null;
         state.analyser = null;
+        state.waveformData = null;
       }
       if (state.stream) {
         state.stream.getAudioTracks().forEach(track => {
@@ -2379,6 +2370,7 @@
         state.audioContext.close().catch(() => {});
         state.audioContext = null;
         state.analyser = null;
+        state.waveformData = null;
       }
       if (state.stream) {
         state.stream.getAudioTracks().forEach(track => {
