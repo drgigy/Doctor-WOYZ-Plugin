@@ -2635,54 +2635,63 @@
           </section>
         `).join("");
       const printableBody = prescription || certificate ? body : `<h1>${escapeHtml(title)}</h1>${body}`;
-      const printWindow = window.open("", "_blank", "width=900,height=700");
-      if (!printWindow) return;
-      printWindow.document.write(`
-        <!doctype html>
-        <html>
-          <head>
-            <title>${escapeHtml(title)}</title>
-            <style>
-              html, body { background: #ffffff !important; min-height: 100%; }
-              body { font-family: Arial, sans-serif; color: #111827; margin: 0; line-height: 1.45; }
-              .print-toolbar { display: flex; gap: 12px; align-items: center; padding: 16px 36px; background: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; }
-              .print-toolbar button { border: 1px solid #ff4545; border-radius: 12px; background: #ffffff; color: #d12626; cursor: pointer; font: 700 15px Arial, sans-serif; padding: 10px 16px; }
-              .print-toolbar .back-button { background: #ff4545; color: #ffffff; box-shadow: 0 10px 24px rgba(255, 69, 69, .18); }
-              .print-page { background: #ffffff; margin: 36px; }
-              h1 { margin: 0 0 18px; color: #1f3f8f; font-size: 26px; }
-              h2 { margin: 18px 0 6px; color: #334155; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
-              section { break-inside: avoid; margin-bottom: 12px; }
-              .content { white-space: normal; font-size: 15px; }
-              .rx-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #d0d5dd; padding-bottom: 12px; margin-bottom: 18px; }
-              .patient-line { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; margin-bottom: 22px; }
-              .credentials { margin-top: 70px; white-space: normal; text-align: left; font-size: 14px; }
-              .certificate-page { padding-top: 72px; }
-              .certificate-date { text-align: right; margin-bottom: 48px; font-size: 15px; }
-              .certificate-title { text-align: center; color: #111827; text-transform: uppercase; text-decoration: underline; letter-spacing: .04em; margin-bottom: 36px; font-size: 22px; }
-              .certificate-body { white-space: normal; font-size: 16px; line-height: 1.8; text-align: justify; margin-top: 12px; }
-              .certificate-thanks { margin-top: 42px; font-size: 15px; }
-              .certificate-credentials { margin-top: 44px; white-space: normal; text-align: left; font-size: 14px; }
-              @media print {
-                html, body, .print-page { background: #ffffff !important; }
-                body { margin: 24mm 18mm; }
-                .print-toolbar { display: none !important; }
-                .print-page { margin: 0; }
-                button { display: none; }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="print-toolbar">
-              <button class="back-button" type="button" onclick="window.close(); setTimeout(() => { if (!window.closed) history.back(); }, 120);">Back</button>
-              <button type="button" onclick="window.print();">Print</button>
-            </div>
-            <main class="print-page">${printableBody}</main>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => printWindow.print(), 250);
+      let printPreview = document.getElementById("printPreview");
+      if (!printPreview) {
+        printPreview = document.createElement("section");
+        printPreview.id = "printPreview";
+        printPreview.hidden = true;
+        printPreview.innerHTML = `
+          <style>
+            #printPreview { position: fixed; inset: 0; z-index: 10000; overflow: auto; background: #ffffff; color: #111827; font-family: Arial, sans-serif; line-height: 1.45; }
+            #printPreview[hidden] { display: none !important; }
+            #printPreview .print-toolbar { display: flex; gap: 12px; align-items: center; padding: 16px 36px; background: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; }
+            #printPreview .print-toolbar button { border: 1px solid #ff4545; border-radius: 12px; background: #ffffff; color: #d12626; cursor: pointer; font: 700 15px Arial, sans-serif; padding: 10px 16px; }
+            #printPreview .print-toolbar .back-button { background: #ff4545; color: #ffffff; box-shadow: 0 10px 24px rgba(255, 69, 69, .18); }
+            #printPreview .print-page { background: #ffffff; margin: 36px; }
+            #printPreview h1 { margin: 0 0 18px; color: #1f3f8f; font-size: 26px; }
+            #printPreview h2 { margin: 18px 0 6px; color: #334155; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+            #printPreview section { break-inside: avoid; margin-bottom: 12px; }
+            #printPreview .content { white-space: normal; font-size: 15px; }
+            #printPreview .rx-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #d0d5dd; padding-bottom: 12px; margin-bottom: 18px; }
+            #printPreview .patient-line { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; margin-bottom: 22px; }
+            #printPreview .credentials { margin-top: 70px; white-space: normal; text-align: left; font-size: 14px; }
+            #printPreview .certificate-page { padding-top: 72px; }
+            #printPreview .certificate-date { text-align: right; margin-bottom: 48px; font-size: 15px; }
+            #printPreview .certificate-title { text-align: center; color: #111827; text-transform: uppercase; text-decoration: underline; letter-spacing: .04em; margin-bottom: 36px; font-size: 22px; }
+            #printPreview .certificate-body { white-space: normal; font-size: 16px; line-height: 1.8; text-align: justify; margin-top: 12px; }
+            #printPreview .certificate-thanks { margin-top: 42px; font-size: 15px; }
+            #printPreview .certificate-credentials { margin-top: 44px; white-space: normal; text-align: left; font-size: 14px; }
+            @media print {
+              body > *:not(#printPreview) { display: none !important; }
+              #printPreview { display: block !important; position: static !important; overflow: visible !important; }
+              #printPreview .print-toolbar { display: none !important; }
+              #printPreview .print-page { margin: 24mm 18mm; }
+            }
+          </style>
+          <div class="print-toolbar">
+            <button class="back-button" type="button">Back</button>
+            <button class="print-button" type="button">Print</button>
+          </div>
+          <main class="print-page"></main>
+        `;
+        document.body.appendChild(printPreview);
+        printPreview.querySelector(".back-button").addEventListener("click", () => {
+          printPreview.hidden = true;
+          document.body.style.overflow = "";
+        });
+        printPreview.querySelector(".print-button").addEventListener("click", () => {
+          if (window.AndroidPrint && typeof window.AndroidPrint.print === "function") {
+            window.AndroidPrint.print(printPreview.dataset.title || "Doctor WOYZ");
+          } else {
+            window.print();
+          }
+        });
+      }
+      printPreview.dataset.title = title;
+      printPreview.querySelector(".print-page").innerHTML = printableBody;
+      printPreview.hidden = false;
+      document.body.style.overflow = "hidden";
+      printPreview.scrollTop = 0;
     }
 
     function printVisitNote() {
