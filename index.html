@@ -1701,6 +1701,16 @@
       state.syncingHistory = false;
     }
 
+    function goBackToRecorder() {
+      if (state.currentView === "record") return;
+      showHistoryView("record");
+    }
+
+    function goForwardToResult() {
+      if (!state.resultReady || state.currentView === "result") return;
+      showHistoryView("result");
+    }
+
     function getBackendMode() {
       return state.inputMode === "ambient" ? "ambient" : state.dictationMode;
     }
@@ -2827,13 +2837,13 @@
     document.getElementById("brandButton").addEventListener("click", resetScribe);
     document.getElementById("newButton").addEventListener("click", () => {
       if (state.currentView !== "record") {
-        window.history.back();
+        goBackToRecorder();
       } else {
         resetScribe();
       }
     });
     document.getElementById("forwardButton").addEventListener("click", () => {
-      window.history.forward();
+      goForwardToResult();
     });
     window.addEventListener("popstate", event => {
       showHistoryView(event.state?.doctorWoyzView || "record");
@@ -2868,9 +2878,11 @@
     scheduleTextareaResize();
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js").catch(error => {
-          console.warn("Service worker registration failed:", error);
-        });
+        navigator.serviceWorker.register("./sw.js")
+          .then(registration => registration.update())
+          .catch(error => {
+            console.warn("Service worker registration failed:", error);
+          });
       });
     }
   </script>
