@@ -2611,7 +2611,31 @@
         .join("<br>");
     }
 
-    function printDocument({ title, sections, prescription = false, certificate = false }) {
+    function replyLetterPrintHtml(text) {
+      const normalized = String(text || "NIL").trim();
+      if (!normalized || normalized.toUpperCase() === "NIL") return '<div class="reply-letter-body">NIL</div>';
+      const blocks = normalized.split(/\n\s*\n/).map(block => block.trim()).filter(Boolean);
+      const thankIndex = blocks.findIndex(block => /^thank you\.?$/i.test(block));
+      const contentBlocks = thankIndex >= 0 ? blocks.slice(0, thankIndex) : blocks;
+      const thanksLine = thankIndex >= 0 ? blocks[thankIndex] : "Thank you";
+      const recipientBlock = contentBlocks[0] || "";
+      const recipientLines = recipientBlock
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean)
+        .filter(line => !/^to,?$/i.test(line));
+      const paragraphBlocks = contentBlocks.slice(1);
+      return `
+        <div class="reply-letter">
+          <div class="reply-to">To,</div>
+          ${recipientLines.length ? `<div class="reply-recipient">${recipientLines.map(formatHtmlText).join("<br>")}</div>` : ""}
+          <div class="reply-letter-body">${formatHtmlText(paragraphBlocks.join("\n\n") || "NIL")}</div>
+          <div class="reply-thanks">${formatHtmlText(thanksLine.replace(/\.$/, ""))}</div>
+        </div>
+      `;
+    }
+
+    function printDocument({ title, sections, prescription = false, certificate = false, replyLetter = false }) {
       const body = certificate
         ? `
           <div class="certificate-page">
@@ -2638,6 +2662,8 @@
           <h2>Medications / Advice</h2>
           <div class="content">${formatHtmlText(numberPrescriptionText(document.getElementById("prescriptionMedications").value.trim()))}</div>
         `
+        : replyLetter
+        ? replyLetterPrintHtml(document.getElementById("dictationText").value.trim())
         : sections.map(([heading, value]) => `
           <section>
             <h2>${escapeHtml(heading)}</h2>
@@ -2645,8 +2671,8 @@
           </section>
         `).join("");
       const credentialsHtml = formatCredentialsHtml(getDoctorCredentials());
-      const credentialsBlock = credentialsHtml ? `<div class="print-credentials">${credentialsHtml}</div>` : "";
-      const printableBody = `${prescription || certificate ? body : `<h1>${escapeHtml(title)}</h1>${body}`}${credentialsBlock}`;
+      const credentialsBlock = credentialsHtml ? `<div class="print-credentials ${replyLetter ? "reply-credentials" : ""}">${credentialsHtml}</div>` : "";
+      const printableBody = `${prescription || certificate || replyLetter ? body : `<h1>${escapeHtml(title)}</h1>${body}`}${credentialsBlock}`;
       let printPreview = document.getElementById("printPreview");
       if (!printPreview) {
         printPreview = document.createElement("section");
@@ -2669,6 +2695,12 @@
             #printPreview .patient-line { display: grid !important; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; margin-bottom: 24px; }
             #printPreview .patient-line span { display: block; min-width: 0; }
             #printPreview .print-credentials { margin-top: 5cm; white-space: normal; text-align: left; font-size: 14px; }
+            #printPreview .print-credentials.reply-credentials { margin-top: 4cm; }
+            #printPreview .reply-letter { white-space: normal; font-size: 15px; line-height: 1.65; text-align: left; }
+            #printPreview .reply-to { margin-bottom: 4px; }
+            #printPreview .reply-recipient { margin-bottom: 18px; }
+            #printPreview .reply-letter-body { margin-top: 0; }
+            #printPreview .reply-thanks { margin-top: 1em; }
             #printPreview .certificate-page { padding-top: 72px; }
             #printPreview .certificate-date { text-align: right; margin-bottom: 48px; font-size: 15px; }
             #printPreview .certificate-title { text-align: center; color: #111827; text-transform: uppercase; text-decoration: underline; letter-spacing: .04em; margin-bottom: 36px; font-size: 22px; }
@@ -2723,6 +2755,10 @@
     }
 
     function printDictation() {
+      if (state.resultMode === "replyLetter") {
+        printDocument({ title: "Reply Letter", replyLetter: true });
+        return;
+      }
       printDocument({
         title: textResultTitle(),
         sections: [[textResultTitle(), document.getElementById("dictationText").value.trim()]]

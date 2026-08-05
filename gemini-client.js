@@ -257,8 +257,28 @@ Do not add, infer, assume, or hallucinate any clinical information.
 Do not remove anything that was dictated.
 Return only the requested JSON object.
 
-Use a polite professional letter style.
-Keep the original meaning exactly.
+Use exactly this layout in the text field:
+To,
+Recipient doctor name
+Recipient credentials or address line 1
+Recipient credentials or address line 2
+
+Main paragraph or paragraphs starting from the left-hand side.
+
+Thank you
+
+Rules:
+- The first line must be exactly "To,".
+- Put the dictated recipient doctor's name, credentials, department, hospital,
+  or address in the next lines exactly as dictated.
+- Do not write "Dear Doctor", "Dear Sir", "Sir", "Madam", "Respected", or any
+  salutation.
+- Start the clinical paragraph directly from the left-hand side after the
+  recipient block.
+- Put "Thank you" at the end, one blank line below the final paragraph.
+- Do not include the sender doctor's name, credentials, signature, or footer;
+  the app adds those from Settings during print.
+- Keep the original meaning exactly.
 If a detail is not dictated, omit it. Do not write "Not dictated".
 
 Never add clinical information that was not spoken.
