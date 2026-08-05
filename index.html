@@ -622,7 +622,9 @@
       position: absolute;
       left: 0;
       bottom: 48px;
-      width: min(320px, calc(100vw - 32px));
+      width: min(360px, calc(100vw - 32px));
+      max-height: min(760px, calc(100dvh - 84px));
+      overflow-y: auto;
       padding: 16px;
       background: var(--panel);
       border: 1px solid var(--line);
@@ -738,6 +740,32 @@
     .credentials-field textarea:focus {
       border-color: var(--blue);
       box-shadow: 0 0 0 3px rgba(255, 69, 69, 0.16);
+    }
+
+    .template-style-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .template-style-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .template-style-row select {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--text);
+      background: var(--bg);
+      padding: 7px 9px;
+      font: 700 13px/1.2 Inter, system-ui, sans-serif;
     }
 
     .remove-key {
@@ -1600,6 +1628,20 @@
           <p class="key-status" id="apiKeyStatus">Saved only on this device and sent directly to Google Gemini.</p>
         </div>
         <div class="credentials-field">
+          <p class="settings-title">Print Header</p>
+          <textarea id="printHeaderInput" placeholder="Header text for printed notes&#10;Clinic name / doctor details / contact"></textarea>
+          <div class="template-style-row">
+            <label><input id="printHeaderBoldInput" type="checkbox"> Bold</label>
+            <label><input id="printHeaderItalicInput" type="checkbox"> Italic</label>
+            <label for="printHeaderSizeInput">Size</label>
+            <select id="printHeaderSizeInput">
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+        </div>
+        <div class="credentials-field">
           <p class="settings-title">Doctor Credentials</p>
           <textarea id="doctorCredentialsInput" placeholder="Doctor name&#10;Qualifications&#10;Registration number&#10;Clinic / hospital address"></textarea>
         </div>
@@ -1614,6 +1656,10 @@
     import { generateVisitNoteDirect } from "./gemini-client.js";
 
     const API_KEY_STORAGE_KEY = "doctor_woyz_gemini_api_key";
+    const PRINT_HEADER_STORAGE_KEY = "doctor_woyz_print_header";
+    const PRINT_HEADER_BOLD_STORAGE_KEY = "doctor_woyz_print_header_bold";
+    const PRINT_HEADER_ITALIC_STORAGE_KEY = "doctor_woyz_print_header_italic";
+    const PRINT_HEADER_SIZE_STORAGE_KEY = "doctor_woyz_print_header_size";
 
     const state = {
       mediaRecorder: null,
@@ -2476,6 +2522,32 @@
       if (certificateBox && state.resultMode === "medicalCertificate") certificateBox.value = value;
     }
 
+    function getPrintHeaderSettings() {
+      const savedSize = localStorage.getItem(PRINT_HEADER_SIZE_STORAGE_KEY);
+      return {
+        text: localStorage.getItem(PRINT_HEADER_STORAGE_KEY) || "",
+        bold: localStorage.getItem(PRINT_HEADER_BOLD_STORAGE_KEY) === "true",
+        italic: localStorage.getItem(PRINT_HEADER_ITALIC_STORAGE_KEY) === "true",
+        size: ["small", "medium", "large"].includes(savedSize) ? savedSize : "medium"
+      };
+    }
+
+    function setPrintHeaderText(value) {
+      localStorage.setItem(PRINT_HEADER_STORAGE_KEY, value);
+    }
+
+    function setPrintHeaderBold(value) {
+      localStorage.setItem(PRINT_HEADER_BOLD_STORAGE_KEY, value ? "true" : "false");
+    }
+
+    function setPrintHeaderItalic(value) {
+      localStorage.setItem(PRINT_HEADER_ITALIC_STORAGE_KEY, value ? "true" : "false");
+    }
+
+    function setPrintHeaderSize(value) {
+      localStorage.setItem(PRINT_HEADER_SIZE_STORAGE_KEY, ["small", "medium", "large"].includes(value) ? value : "medium");
+    }
+
     function activeVisitFields() {
       return state.resultMode === "visitDictation" ? visitDictationFields : caseFields;
     }
@@ -2611,6 +2683,101 @@
         .join("<br>");
     }
 
+    function formatPrintHeaderHtml(settings) {
+      return formatHtmlText(settings.text || "\u00A0");
+    }
+
+    function patientMetaLine() {
+      const date = document.getElementById("prescriptionDate").value.trim();
+      const details = [
+        ["Age", document.getElementById("prescriptionAge").value.trim()],
+        ["Sex", document.getElementById("prescriptionSex").value.trim()],
+        ["UHID", document.getElementById("prescriptionUhid").value.trim()]
+      ]
+        .filter(([, value]) => value && value.toUpperCase() !== "NIL")
+        .map(([label, value]) => `${label}: ${value}`);
+      if (date && date.toUpperCase() !== "NIL") details.push(date);
+      return details.length ? details.join(" | ") : "NIL";
+    }
+
+    function splitPrescriptionForTemplate(text) {
+      const normalized = numberPrescriptionText(text);
+      if (!normalized || normalized.toUpperCase() === "NIL") return { medicines: [], instructions: ["NIL"] };
+      const medicines = [];
+      const instructions = [];
+      let inAdvice = false;
+      normalized.split("\n").map(line => line.trim()).filter(Boolean).forEach(line => {
+        if (/^advice\s*:?$/i.test(line)) {
+          inAdvice = true;
+          return;
+        }
+        const cleanedAdvice = line.replace(/^[-•]\s*/, "").trim();
+        if (inAdvice) {
+          if (cleanedAdvice) instructions.push(cleanedAdvice);
+          return;
+        }
+        const medicineMatch = line.match(/^(\d+)\.\s*(.+)$/);
+        if (medicineMatch) {
+          medicines.push({ number: medicineMatch[1], lines: [medicineMatch[2].trim()] });
+          return;
+        }
+        if (medicines.length) {
+          medicines[medicines.length - 1].lines.push(line);
+        } else {
+          medicines.push({ number: String(medicines.length + 1), lines: [line] });
+        }
+      });
+      return { medicines, instructions };
+    }
+
+    function formatMedicineLine(line, index) {
+      const escaped = formatHtmlText(line);
+      if (index > 0) {
+        const lineClass = /[\u0D00-\u0D7F]/.test(line) ? "medicine-malayalam" : "medicine-instruction";
+        return `<div class="${lineClass}">${escaped}</div>`;
+      }
+      const separator = line.search(/\s[-–—]\s|,\s*(?:take|use|apply|instill|continue)\b/i);
+      if (separator > 0) {
+        const prefix = line.slice(0, separator).trim();
+        const suffix = line.slice(separator).replace(/^\s*[-–—,]\s*/, "").trim();
+        return `<div class="medicine-main"><strong>${formatHtmlText(prefix)}</strong>${suffix ? `<div class="medicine-instruction">${formatHtmlText(suffix)}</div>` : ""}</div>`;
+      }
+      return `<div class="medicine-main"><strong>${escaped}</strong></div>`;
+    }
+
+    function prescriptionPrintHtml() {
+      const nameValue = document.getElementById("prescriptionName").value.trim();
+      const patientName = nameValue && nameValue.toUpperCase() !== "NIL" ? nameValue.toUpperCase() : "NIL";
+      const { medicines, instructions } = splitPrescriptionForTemplate(document.getElementById("prescriptionMedications").value.trim());
+      const medicineHtml = medicines.length
+        ? medicines.map((item, index) => `
+          <div class="rx-item">
+            <div class="rx-number">${escapeHtml(item.number || String(index + 1))}.</div>
+            <div class="rx-copy">${item.lines.map(formatMedicineLine).join("")}</div>
+          </div>
+        `).join("")
+        : '<div class="rx-item"><div class="rx-number">1.</div><div class="rx-copy">NIL</div></div>';
+      const instructionHtml = instructions.length
+        ? instructions.map((line, index) => `
+          <div class="instruction-item">
+            <div class="rx-number">${index + 1}.</div>
+            <div>${formatHtmlText(line)}</div>
+          </div>
+        `).join("")
+        : "";
+      return `
+        <div class="prescription-template">
+          <h1 class="patient-name">${formatHtmlText(patientName)}</h1>
+          <div class="patient-meta">${formatHtmlText(patientMetaLine())}</div>
+          <h2>Rx / ADVICE</h2>
+          <div class="rx-list">${medicineHtml}</div>
+          ${instructionHtml ? `<h2>Instructions</h2><div class="instruction-list">${instructionHtml}</div>` : ""}
+          <div class="template-divider"></div>
+          <p class="template-emergency">If you develop any rash, breathing difficulty, swelling, severe allergy symptoms, or any unexpected reaction, please contact us immediately or get urgent medical attention. Emergency contact: +91 8330 811 911, Rajagiri Hospital, Aluva, Ernakulam.</p>
+        </div>
+      `;
+    }
+
     function replyLetterPrintHtml(text) {
       const normalized = String(text || "NIL").trim();
       if (!normalized || normalized.toUpperCase() === "NIL") return '<div class="reply-letter-body">NIL</div>';
@@ -2648,20 +2815,7 @@
           </div>
         `
         : prescription
-        ? `
-          <div class="rx-head">
-            <h1>Prescription</h1>
-            <div>${formatHtmlText(document.getElementById("prescriptionDate").value.trim())}</div>
-          </div>
-          <div class="patient-line">
-            <span><strong>Name:</strong> ${formatHtmlText(document.getElementById("prescriptionName").value.trim())}</span>
-            <span><strong>Age:</strong> ${formatHtmlText(document.getElementById("prescriptionAge").value.trim())}</span>
-            <span><strong>Sex:</strong> ${formatHtmlText(document.getElementById("prescriptionSex").value.trim())}</span>
-            <span><strong>UHID:</strong> ${formatHtmlText(document.getElementById("prescriptionUhid").value.trim())}</span>
-          </div>
-          <h2>Medications / Advice</h2>
-          <div class="content">${formatHtmlText(numberPrescriptionText(document.getElementById("prescriptionMedications").value.trim()))}</div>
-        `
+        ? prescriptionPrintHtml()
         : replyLetter
         ? replyLetterPrintHtml(document.getElementById("dictationText").value.trim())
         : sections.map(([heading, value]) => `
@@ -2672,7 +2826,20 @@
         `).join("");
       const credentialsHtml = formatCredentialsHtml(getDoctorCredentials());
       const credentialsBlock = credentialsHtml ? `<div class="print-credentials ${replyLetter ? "reply-credentials" : ""}">${credentialsHtml}</div>` : "";
-      const printableBody = `${prescription || certificate || replyLetter ? body : `<h1>${escapeHtml(title)}</h1>${body}`}${credentialsBlock}`;
+      const headerSettings = getPrintHeaderSettings();
+      const headerClasses = [
+        "template-header",
+        headerSettings.size,
+        headerSettings.bold ? "bold" : "",
+        headerSettings.italic ? "italic" : ""
+      ].filter(Boolean).join(" ");
+      const printableContent = `${prescription || certificate || replyLetter ? body : `<h1>${escapeHtml(title)}</h1>${body}`}${credentialsBlock}`;
+      const printableBody = `
+        <div class="print-template">
+          <div class="${headerClasses}">${formatPrintHeaderHtml(headerSettings)}</div>
+          <div class="template-content">${printableContent}</div>
+        </div>
+      `;
       let printPreview = document.getElementById("printPreview");
       if (!printPreview) {
         printPreview = document.createElement("section");
@@ -2685,16 +2852,32 @@
             #printPreview .print-toolbar { display: flex; gap: 12px; align-items: center; padding: 16px 36px; background: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; }
             #printPreview .print-toolbar button { border: 1px solid #ff4545; border-radius: 12px; background: #ffffff; color: #d12626; cursor: pointer; font: 700 15px Arial, sans-serif; padding: 10px 16px; }
             #printPreview .print-toolbar .back-button { background: #ff4545; color: #ffffff; box-shadow: 0 10px 24px rgba(255, 69, 69, .18); }
-            #printPreview .print-page { display: block !important; width: auto !important; max-width: none !important; min-height: 0 !important; background: #ffffff; margin: 36px; padding: 0 !important; box-sizing: border-box; }
-            #printPreview h1 { margin: 0 0 18px; color: #1f3f8f; font-size: 26px; }
-            #printPreview h2 { margin: 18px 0 6px; color: #334155; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+            #printPreview .print-page { display: block !important; width: auto !important; max-width: none !important; min-height: 0 !important; background: #ffffff; margin: 0; padding: 0 !important; box-sizing: border-box; }
+            #printPreview .print-template { min-height: 100vh; background: #ffffff; }
+            #printPreview .template-header { min-height: 118px; background: #e8edf3; color: #000000; padding: 28px 44px; box-sizing: border-box; white-space: normal; line-height: 1.22; font-size: 15px; font-weight: 400; }
+            #printPreview .template-header.small { font-size: 13px; }
+            #printPreview .template-header.medium { font-size: 15px; }
+            #printPreview .template-header.large { font-size: 18px; }
+            #printPreview .template-header.bold { font-weight: 700; }
+            #printPreview .template-header.italic { font-style: italic; }
+            #printPreview .template-content { padding: 28px 44px 0; box-sizing: border-box; }
+            #printPreview h1 { margin: 0 0 18px; color: #111827; font-size: 26px; }
+            #printPreview h2 { margin: 22px 0 12px; color: #004270; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
             #printPreview section { break-inside: avoid; margin-bottom: 12px; }
             #printPreview .content { white-space: normal; font-size: 15px; }
-            #printPreview .rx-head { display: flex !important; width: 100%; justify-content: space-between; align-items: flex-start; gap: 24px; border-bottom: 1px solid #d0d5dd; padding-bottom: 12px; margin-bottom: 18px; }
-            #printPreview .rx-head h1 { margin-bottom: 0; }
-            #printPreview .patient-line { display: grid !important; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; margin-bottom: 24px; }
-            #printPreview .patient-line span { display: block; min-width: 0; }
-            #printPreview .print-credentials { margin-top: 5cm; white-space: normal; text-align: left; font-size: 14px; }
+            #printPreview .patient-name { margin: 0 0 8px; color: #000000; font-size: 22px; font-weight: 900; text-transform: uppercase; }
+            #printPreview .patient-meta { margin-bottom: 24px; color: #000000; font-size: 13px; }
+            #printPreview .rx-list,
+            #printPreview .instruction-list { display: grid; gap: 14px; }
+            #printPreview .rx-item,
+            #printPreview .instruction-item { display: grid; grid-template-columns: 28px 1fr; column-gap: 18px; color: #000000; font-size: 14px; line-height: 1.45; }
+            #printPreview .rx-number { font-weight: 800; }
+            #printPreview .medicine-main strong { font-size: 15px; }
+            #printPreview .medicine-instruction { margin-top: 2px; }
+            #printPreview .medicine-malayalam { margin-top: 4px; font-size: 12px; }
+            #printPreview .template-divider { margin-top: 28px; border-top: 1px solid #9ca3af; }
+            #printPreview .template-emergency { margin: 14px 0 0; color: #000000; font-size: 11px; line-height: 1.25; }
+            #printPreview .print-credentials { margin-top: 5cm; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
             #printPreview .print-credentials.reply-credentials { margin-top: 4cm; }
             #printPreview .reply-letter { white-space: normal; font-size: 15px; line-height: 1.65; text-align: left; }
             #printPreview .reply-to { margin-bottom: 4px; }
@@ -2710,7 +2893,10 @@
               body > *:not(#printPreview) { display: none !important; }
               #printPreview { display: block !important; position: static !important; overflow: visible !important; }
               #printPreview .print-toolbar { display: none !important; }
-              #printPreview .print-page { margin: 24mm 18mm; }
+              #printPreview .print-page { margin: 0 !important; }
+              #printPreview .print-template { min-height: 100vh; }
+              #printPreview .template-header { padding: 10mm 12mm; min-height: 34mm; }
+              #printPreview .template-content { padding: 8mm 12mm 0; }
             }
           </style>
           <div class="print-toolbar">
@@ -2906,8 +3092,31 @@
       }[character]));
     }
 
-    document.getElementById("doctorCredentialsInput").value = getDoctorCredentials();
-    document.getElementById("doctorCredentialsInput").addEventListener("input", event => {
+    const printHeaderSettings = getPrintHeaderSettings();
+    const printHeaderInput = document.getElementById("printHeaderInput");
+    const printHeaderBoldInput = document.getElementById("printHeaderBoldInput");
+    const printHeaderItalicInput = document.getElementById("printHeaderItalicInput");
+    const printHeaderSizeInput = document.getElementById("printHeaderSizeInput");
+    printHeaderInput.value = printHeaderSettings.text;
+    printHeaderBoldInput.checked = printHeaderSettings.bold;
+    printHeaderItalicInput.checked = printHeaderSettings.italic;
+    printHeaderSizeInput.value = printHeaderSettings.size;
+    printHeaderInput.addEventListener("input", event => {
+      setPrintHeaderText(event.currentTarget.value);
+    });
+    printHeaderBoldInput.addEventListener("change", event => {
+      setPrintHeaderBold(event.currentTarget.checked);
+    });
+    printHeaderItalicInput.addEventListener("change", event => {
+      setPrintHeaderItalic(event.currentTarget.checked);
+    });
+    printHeaderSizeInput.addEventListener("change", event => {
+      setPrintHeaderSize(event.currentTarget.value);
+    });
+
+    const doctorCredentialsInput = document.getElementById("doctorCredentialsInput");
+    doctorCredentialsInput.value = getDoctorCredentials();
+    doctorCredentialsInput.addEventListener("input", event => {
       setDoctorCredentials(event.currentTarget.value);
     });
     document.getElementById("brandButton").addEventListener("click", resetScribe);

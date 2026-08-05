@@ -448,6 +448,9 @@ Rules:
 - Fill patientName, patientAge, patientSex, and patientUhid only when each is
   explicitly dictated. Otherwise use "NIL".
 - Put all prescription content in medicationsAdvised.
+- Write medicationsAdvised so it can be printed in a prescription template:
+  medicine rows must stay under Medications, and non-medicine instructions,
+  review plans, tests, imaging, and follow-up must stay under Advice.
 - medicationsAdvised must use this exact section style when relevant:
   Medications:
   1. Tablet/Cap/Syrup/Inj brand name dose - clear English patient instruction
@@ -455,6 +458,8 @@ Rules:
      Malayalam patient instruction for the same medicine.
   Advice:
   - Review/follow-up/investigation instructions line by line
+- Do not combine section headings and content into one continuous sentence.
+- Do not write "Prescription:" inside medicationsAdvised.
 - Do not write the word "Malayalam" before the Malayalam text. Put the
   Malayalam instruction directly below the English instruction.
 - For each prescription medicine, keep the medicine name and dose as the first
