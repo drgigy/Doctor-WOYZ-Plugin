@@ -192,9 +192,9 @@
 
     .topbar-inner {
       max-width: 1100px;
-      min-height: 154px;
+      min-height: 112px;
       margin: 0 auto;
-      padding: 34px 20px;
+      padding: 22px 20px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -213,20 +213,20 @@
     }
 
     .brand-doctor {
-      font-size: 38px;
+      font-size: 32px;
       line-height: 1;
       font-weight: 900;
       letter-spacing: 0;
     }
 
     .brand-mark {
-      width: 30px;
-      height: 30px;
+      width: 24px;
+      height: 24px;
       display: grid;
       place-items: center;
       border-radius: 999px;
       background: var(--blue);
-      box-shadow: 0 0 0 15px rgba(255, 69, 69, 0.16);
+      box-shadow: 0 0 0 12px rgba(255, 69, 69, 0.16);
       color: transparent;
       font-size: 0;
       flex: 0 0 auto;
@@ -235,14 +235,14 @@
     .brand-title {
       display: inline-flex;
       align-items: center;
-      gap: 22px;
-      border: 5px solid var(--blue);
-      border-radius: 40px;
+      gap: 18px;
+      border: 4px solid var(--blue);
+      border-radius: 34px;
       background: #17181d;
-      padding: 17px 36px 17px 26px;
+      padding: 13px 30px 13px 22px;
       box-shadow: none;
       color: #f8fafc;
-      font-size: 38px;
+      font-size: 32px;
       line-height: 1;
       font-weight: 900;
       letter-spacing: 0;
@@ -286,20 +286,25 @@
       width: 100%;
       display: flex;
       justify-content: center;
-      padding: 44px 42px 54px;
+      padding: 24px 42px 28px;
     }
 
     .center {
-      width: min(100%, 1088px);
+      width: min(100%, 980px);
       align-self: flex-start;
       text-align: center;
     }
 
+    #recordView {
+      max-height: calc(100dvh - 112px - 52px);
+      overflow: hidden;
+    }
+
     .intro {
-      margin: 0 auto 30px;
+      margin: 0 auto 18px;
       max-width: 560px;
       color: var(--muted);
-      font-size: 26px;
+      font-size: 24px;
       line-height: 1.3;
       font-weight: 650;
     }
@@ -310,7 +315,7 @@
       border: 1px solid var(--line);
       border-radius: 26px;
       box-shadow: var(--shadow);
-      padding: 48px 48px 46px;
+      padding: 32px 40px 28px;
     }
 
     .card:focus {
@@ -324,15 +329,15 @@
 
     .focus-box {
       position: relative;
-      min-height: 212px;
+      min-height: 184px;
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 20px;
       background: #101010;
-      margin-bottom: 36px;
+      margin-bottom: 22px;
       display: grid;
       place-items: center;
-      padding: 24px 48px;
+      padding: 22px 40px;
     }
 
     .focus-inner {
@@ -341,7 +346,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 22px;
+      gap: 14px;
     }
 
     .focus-extend {
@@ -357,7 +362,7 @@
 
     .waveform-wrap {
       width: 100%;
-      height: 110px;
+      height: 86px;
       position: relative;
       overflow: hidden;
       display: block;
@@ -370,14 +375,14 @@
 
     .waveform-canvas {
       width: 100%;
-      height: 102px;
+      height: 68px;
       display: block;
     }
 
     .timer-label {
       margin-top: 0;
       color: var(--muted);
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -389,7 +394,7 @@
       align-items: center;
       justify-content: center;
       gap: 12px;
-      min-height: 128px;
+      min-height: 104px;
     }
 
     .control-item {
@@ -435,15 +440,15 @@
     }
 
     .round.record {
-      width: 144px;
-      height: 144px;
+      width: 116px;
+      height: 116px;
       background: var(--blue);
       box-shadow: 0 0 0 7px rgba(10, 10, 10, 0.74);
     }
 
     .round.record svg {
-      width: 52px;
-      height: 52px;
+      width: 44px;
+      height: 44px;
     }
 
     .round.pause {
@@ -492,7 +497,7 @@
     }
 
     .timer {
-      font: 800 66px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font: 800 54px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       color: var(--text);
     }
 
@@ -500,7 +505,7 @@
       min-height: 26px;
       margin-top: 8px;
       color: var(--muted);
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 650;
     }
 
@@ -537,10 +542,10 @@
     }
 
     .mode-panel {
-      margin: 40px auto 0;
+      margin: 24px auto 0;
       display: grid;
       justify-items: center;
-      gap: 20px;
+      gap: 16px;
     }
 
     .mode-toggle {
@@ -564,10 +569,10 @@
 
     .dictation-options {
       display: flex;
-      gap: 20px;
+      gap: 16px;
       flex-wrap: wrap;
       justify-content: center;
-      max-width: 980px;
+      max-width: 900px;
     }
 
     .dictation-options.visible {
@@ -575,13 +580,13 @@
     }
 
     .mode-option {
-      min-width: 226px;
-      border: 5px solid #181818;
+      min-width: 196px;
+      border: 4px solid #181818;
       border-radius: 999px;
       color: #ffffff;
       background: #181818;
-      padding: 22px 36px;
-      font-size: 25px;
+      padding: 18px 30px;
+      font-size: 22px;
       font-weight: 850;
       cursor: pointer;
     }
@@ -1029,80 +1034,85 @@
     }
 
     @media (min-width: 721px) and (max-height: 820px) {
+      #recordView {
+        max-height: calc(100dvh - 86px - 38px);
+      }
+
       .topbar-inner {
-        min-height: 118px;
-        padding: 24px 20px;
+        min-height: 86px;
+        padding: 14px 20px;
       }
 
       .brand-doctor {
-        font-size: 32px;
+        font-size: 28px;
       }
 
       .brand-title {
         border-width: 4px;
-        border-radius: 34px;
-        padding: 13px 30px 13px 22px;
-        font-size: 32px;
+        border-radius: 30px;
+        padding: 10px 26px 10px 18px;
+        font-size: 28px;
       }
 
       .brand-mark {
-        width: 24px;
-        height: 24px;
-        box-shadow: 0 0 0 12px rgba(255, 69, 69, 0.16);
+        width: 20px;
+        height: 20px;
+        box-shadow: 0 0 0 10px rgba(255, 69, 69, 0.16);
       }
 
       main {
-        padding: 34px 42px 44px;
+        padding: 18px 42px 20px;
       }
 
       .intro {
-        margin-bottom: 24px;
-        font-size: 24px;
+        margin-bottom: 14px;
+        font-size: 21px;
         line-height: 1.3;
       }
 
       .card {
-        padding: 42px 48px;
+        padding: 28px 40px 24px;
       }
 
       .focus-box {
-        min-height: 210px;
-        margin-bottom: 32px;
-        padding: 24px 48px;
+        min-height: 170px;
+        margin-bottom: 18px;
+        padding: 18px 40px;
       }
 
       .focus-inner {
-        gap: 8px;
+        gap: 10px;
       }
 
       .waveform-wrap {
-        height: 110px;
+        height: 76px;
       }
 
       .waveform-canvas {
-        height: 92px;
+        height: 58px;
       }
 
       .timer {
-        font-size: 60px;
+        font-size: 48px;
       }
 
       .controls {
-        min-height: 122px;
+        min-height: 92px;
       }
 
       .round.record {
-        width: 132px;
-        height: 132px;
+        width: 104px;
+        height: 104px;
       }
 
       .status {
-        margin-top: 4px;
+        margin-top: 2px;
+        font-size: 20px;
       }
 
       .mode-panel {
-        margin-top: 38px;
-        gap: 20px;
+        margin-top: 18px;
+        gap: 14px;
       }
 
       .mode-toggle {
@@ -1110,8 +1120,9 @@
       }
 
       .mode-option {
-        padding: 20px 32px;
-        font-size: 23px;
+        min-width: 184px;
+        padding: 15px 28px;
+        font-size: 20px;
       }
     }
 
@@ -1838,20 +1849,9 @@
       const context = waveformCanvas.getContext("2d");
       const { width, height } = sizeWaveformCanvas();
       const centerY = height / 2;
-      const amplitude = height * 0.5;
-      const pointCount = 100;
-      const pointGap = width / Math.max(1, pointCount - 1);
-      const waveCycles = 9;
       context.clearRect(0, 0, width, height);
-      context.lineWidth = Math.max(3, width / 180);
-      context.lineCap = "round";
-      context.lineJoin = "round";
-      context.strokeStyle = "#ff4545";
-      context.shadowColor = "rgba(255, 69, 69, 0.32)";
-      context.shadowBlur = 10;
 
       if (!state.analyser || !state.mediaRecorder || state.mediaRecorder.state !== "recording") {
-        context.shadowBlur = 0;
         drawFlatWaveform();
         return;
       }
@@ -1866,21 +1866,27 @@
       const rms = Math.sqrt(sum / data.length);
       const targetLevel = Math.max(0.02, Math.min(1, rms * 11));
       state.waveformLevel = state.waveformLevel * 0.78 + targetLevel * 0.22;
-      state.waveformPhase += 0.07;
-      context.beginPath();
-      for (let index = 0; index < pointCount; index += 1) {
-        const x = index * pointGap;
-        const progress = index / Math.max(1, pointCount - 1);
-        const wave = Math.sin(progress * Math.PI * 2 * waveCycles + state.waveformPhase);
-        const envelope = 0.72 + 0.28 * Math.sin(progress * Math.PI);
-        const y = centerY + wave * amplitude * state.waveformLevel * envelope;
-        if (index === 0) {
-          context.moveTo(x, y);
-        } else {
-          context.lineTo(x, y);
-        }
-      }
-      context.stroke();
+      state.waveformPhase += 0.16;
+      const bars = [0.34, 0.56, 0.44, 0.68, 0.76, 0.5, 0.86, 0.58, 0.72, 0.4, 0.66, 0.82, 0.54, 0.74, 0.46, 0.62, 0.78, 0.52];
+      const barWidth = Math.max(5, Math.min(9, width / 110));
+      const gap = Math.max(6, barWidth * 1.1);
+      const totalWidth = bars.length * barWidth + (bars.length - 1) * gap;
+      const startX = (width - totalWidth) / 2;
+      context.lineWidth = barWidth;
+      context.lineCap = "round";
+      context.strokeStyle = "#ef4f4f";
+      context.shadowColor = "rgba(239, 79, 79, 0.28)";
+      context.shadowBlur = 8;
+      bars.forEach((base, index) => {
+        const pulse = 0.22 * Math.sin(state.waveformPhase + index * 0.82);
+        const level = Math.max(0.22, Math.min(1, base + pulse + state.waveformLevel * 0.55));
+        const halfHeight = Math.min(height * 0.43, height * level * 0.38);
+        const x = startX + index * (barWidth + gap) + barWidth / 2;
+        context.beginPath();
+        context.moveTo(x, centerY - halfHeight);
+        context.lineTo(x, centerY + halfHeight);
+        context.stroke();
+      });
       context.shadowBlur = 0;
       state.animationId = requestAnimationFrame(renderWaveform);
     }
