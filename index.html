@@ -2606,7 +2606,6 @@
               ${formatHtmlText(certificateBodyText())}
             </div>
             <div class="certificate-thanks">Thank you</div>
-            <div class="certificate-credentials">${formatCredentialsHtml(document.getElementById("certificateCredentials").value.trim())}</div>
           </div>
         `
         : prescription
@@ -2623,7 +2622,6 @@
           </div>
           <h2>Medications / Advice</h2>
           <div class="content">${formatHtmlText(numberPrescriptionText(document.getElementById("prescriptionMedications").value.trim()))}</div>
-          <div class="credentials">${formatCredentialsHtml(document.getElementById("prescriptionCredentials").value.trim())}</div>
         `
         : sections.map(([heading, value]) => `
           <section>
@@ -2631,7 +2629,9 @@
             <div class="content">${formatHtmlText(value)}</div>
           </section>
         `).join("");
-      const printableBody = prescription || certificate ? body : `<h1>${escapeHtml(title)}</h1>${body}`;
+      const credentialsHtml = formatCredentialsHtml(getDoctorCredentials());
+      const credentialsBlock = credentialsHtml ? `<div class="print-credentials">${credentialsHtml}</div>` : "";
+      const printableBody = `${prescription || certificate ? body : `<h1>${escapeHtml(title)}</h1>${body}`}${credentialsBlock}`;
       let printPreview = document.getElementById("printPreview");
       if (!printPreview) {
         printPreview = document.createElement("section");
@@ -2653,13 +2653,12 @@
             #printPreview .rx-head h1 { margin-bottom: 0; }
             #printPreview .patient-line { display: grid !important; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; margin-bottom: 24px; }
             #printPreview .patient-line span { display: block; min-width: 0; }
-            #printPreview .credentials { margin-top: 70px; white-space: normal; text-align: left; font-size: 14px; }
+            #printPreview .print-credentials { margin-top: 5cm; white-space: normal; text-align: left; font-size: 14px; }
             #printPreview .certificate-page { padding-top: 72px; }
             #printPreview .certificate-date { text-align: right; margin-bottom: 48px; font-size: 15px; }
             #printPreview .certificate-title { text-align: center; color: #111827; text-transform: uppercase; text-decoration: underline; letter-spacing: .04em; margin-bottom: 36px; font-size: 22px; }
             #printPreview .certificate-body { white-space: normal; font-size: 16px; line-height: 1.8; text-align: justify; margin-top: 12px; }
             #printPreview .certificate-thanks { margin-top: 42px; font-size: 15px; }
-            #printPreview .certificate-credentials { margin-top: 44px; white-space: normal; text-align: left; font-size: 14px; }
             @media print {
               body > *:not(#printPreview) { display: none !important; }
               #printPreview { display: block !important; position: static !important; overflow: visible !important; }

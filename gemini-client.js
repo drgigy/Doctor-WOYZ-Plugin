@@ -76,7 +76,7 @@ const PRESCRIPTION_SCHEMA = {
     patientAge: { type: "string", description: "Patient age exactly as spoken, otherwise NIL." },
     patientSex: { type: "string", description: "Patient sex or gender exactly as spoken, otherwise NIL." },
     patientUhid: { type: "string", description: "UHID exactly as spoken, otherwise NIL." },
-    medicationsAdvised: { type: "string", description: "Only explicitly dictated medications, advice, investigations, and follow-up, one numbered item per line. Never infer missing details." }
+    medicationsAdvised: { type: "string", description: "Only explicitly dictated medications, advice, investigations, and follow-up. Use the same style as the embedded Visit + Prescription Prescription section: Medications: with numbered medicine lines and Malayalam instruction lines, then Advice: for review/investigation/follow-up instructions. Never infer missing details." }
   },
   required: PRESCRIPTION_FIELDS
 };
@@ -420,21 +420,50 @@ function buildPrescriptionPrompt() {
   return `
 You are an expert medical prescription transcription assistant. Convert the
 recorded Malayalam, English, or Kerala Manglish prescription dictation into
-professional clinical English.
+the same prescription format used inside Visit + Prescription.
 
 Rules:
 - Return only the requested JSON object.
 - Fill date only if dictated. If not dictated, use today's date.
 - Fill patientName, patientAge, patientSex, and patientUhid only when each is
   explicitly dictated. Otherwise use "NIL".
-- Put all medications, advice, investigations, and follow-up instructions in
-  medicationsAdvised.
-- Write each medication or advice item on a separate numbered line: 1, 2, 3.
+- Put all prescription content in medicationsAdvised.
+- medicationsAdvised must use this exact section style when relevant:
+  Medications:
+  1. Tablet/Cap/Syrup/Inj brand name dose - clear English patient instruction
+     with timing, duration, and food/administration instruction.
+     Malayalam patient instruction for the same medicine.
+  Advice:
+  - Review/follow-up/investigation instructions line by line
+- Do not write the word "Malayalam" before the Malayalam text. Put the
+  Malayalam instruction directly below the English instruction.
+- For each prescription medicine, keep the medicine name and dose as the first
+  part of the line, then write a clear English instruction. Directly below it,
+  write the same patient-facing instruction in Malayalam when possible.
+- Do not translate medicine brand names into Malayalam. Keep medicine names and
+  doses in English in both English and Malayalam instruction lines.
+- Do not put advice such as "continue medicines", "review after one month", or
+  investigation advice as numbered medicine rows.
+- If investigations, lab tests, imaging, EEG/NCS, scans, or follow-up tests are
+  ordered, include them under Advice line by line.
 - Preserve drug names, doses, timings, durations, and instructions exactly as
   dictated.
+- Every heading and subheading must start on its own new line.
 - If a total tablet/capsule count is dictated for dispensing, do not convert it
   into a patient instruction like "Take 10 tablets." Write it as total quantity,
   for example "(total 10 tablets)", after the actual dose/timing instruction.
+- In English prescription instructions, write duration in numeric form only,
+  for example "1 month", "10 days", "2 weeks". Do not write "one month", "one
+  more month", "for one more month", or vague words like "more" or "less".
+- In Malayalam patient instruction lines, spell general counts and durations in
+  Malayalam words instead of English numerals when possible, especially at the
+  start of a line or sentence. Examples: "1 tablet" -> "ഒരു ഗുളിക", "10 days"
+  -> "പത്ത് ദിവസം", "1 month" -> "ഒരു മാസം".
+- Always write tablet medicines as "Tablet", not "Tab".
+- If only the word evening is dictated without a clock time, write it as night.
+- Do not use internal labels like "morning:", "noon:", "night:", "Duration:",
+  or "Instructions:" in prescription lines. Write one clear patient-facing
+  sentence after the medicine name.
 - Never invent, infer, recommend, or add information that was not spoken.
 `.trim();
 }
