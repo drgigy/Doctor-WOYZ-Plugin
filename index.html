@@ -306,6 +306,23 @@
       font-weight: 650;
     }
 
+    .ambient-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background: transparent;
+      padding: 8px 20px;
+      cursor: pointer;
+    }
+
+    .ambient-toggle.active {
+      color: #111827;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(239, 79, 79, 0.14);
+    }
+
     .card {
       position: relative;
       background: var(--panel);
@@ -1489,7 +1506,7 @@
 
     <main>
       <section class="center" id="recordView">
-        <p class="intro">Ambient Mode</p>
+        <button class="intro ambient-toggle" id="ambientModeButton" type="button">Ambient Mode</button>
         <div class="card" id="recordCard" tabindex="-1">
           <div class="focus-box" id="focusBox">
             <div class="focus-inner">
@@ -1886,10 +1903,11 @@
 
     function updateModeUi() {
       const dictationActive = state.inputMode === "dictation";
+      document.getElementById("ambientModeButton").classList.toggle("active", !dictationActive);
+      document.getElementById("ambientModeButton").setAttribute("aria-pressed", String(!dictationActive));
       document.querySelectorAll("[data-dictation-mode]").forEach(button => {
         button.classList.toggle("active", dictationActive && button.dataset.dictationMode === state.dictationMode);
       });
-      document.querySelector(".intro").textContent = dictationActive ? getModeLabel() : "Ambient Mode";
       recordCard.classList.toggle("strict", dictationActive);
     }
 
@@ -2433,6 +2451,12 @@
         updateModeUi();
         focusKeyboardShortcuts();
       });
+    });
+
+    document.getElementById("ambientModeButton").addEventListener("click", () => {
+      state.inputMode = "ambient";
+      updateModeUi();
+      focusKeyboardShortcuts();
     });
 
     document.getElementById("settingsButton").addEventListener("click", () => {
