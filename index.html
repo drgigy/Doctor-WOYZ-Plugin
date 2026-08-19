@@ -308,8 +308,8 @@
 
     .card {
       position: relative;
-      background: #101010;
-      color: #ffffff;
+      background: var(--panel);
+      color: var(--text);
       border: 1px solid var(--line);
       border-radius: 20px;
       box-shadow: var(--shadow);
@@ -321,9 +321,12 @@
     }
 
     .card.strict {
+      border-color: var(--line);
+    }
+
+    #recordCard {
       background: #101010;
       color: #ffffff;
-      border-color: var(--line);
     }
 
     #recordCard .timer-label,
@@ -338,11 +341,15 @@
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 20px;
-      background: #101010;
+      background: var(--panel-soft);
       margin-bottom: 12px;
       display: grid;
       place-items: center;
       padding: 14px 27px;
+    }
+
+    #recordCard .focus-box {
+      background: #101010;
     }
 
     .focus-inner {
