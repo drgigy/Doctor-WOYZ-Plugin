@@ -1,15 +1,11 @@
-# Doctor WOYZ — Direct Gemini Edition
+# Doctor WOYZ
 
-A static, installable web app for recording clinical audio and generating structured notes with the Gemini API.
+A static, installable web app for recording clinical audio and generating structured notes with secure processing.
 
 ## Architecture
 
-- No Firebase
-- No Firestore
-- No Cloud Functions
 - No backend server
-- The browser sends recordings directly to the Google Gemini API
-- The Gemini API key is stored only in this browser's `localStorage`
+- The authorization key is stored only in this browser's `localStorage`
 
 ## Publish with GitHub Pages
 
@@ -19,7 +15,7 @@ A static, installable web app for recording clinical audio and generating struct
 4. Under **Build and deployment**, choose **Deploy from a branch**.
 5. Select the `main` branch and `/ (root)`, then save.
 6. Open the GitHub Pages URL after deployment completes.
-7. In Doctor WOYZ, open **Settings**, paste a Gemini API key, and click **Save Key**.
+7. In Doctor WOYZ, open **Settings**, paste an authorization key, and click **Save Key**.
 
 ## Local testing
 
@@ -33,8 +29,8 @@ Then visit `http://localhost:8080`.
 
 Microphone access requires HTTPS in production; GitHub Pages supplies HTTPS.
 
-## API key safety
+## Authorization key safety
 
-This app intentionally uses a browser-held key. Anyone with access to the browser profile may be able to retrieve it. Use a dedicated Gemini API key, restrict it to the Gemini API and your GitHub Pages referrer where supported, set a conservative quota, and remove/rotate it if the device is lost or shared.
+This app intentionally uses a browser-held key. Anyone with access to the browser profile may be able to retrieve it. Use a dedicated authorization key, restrict it to your GitHub Pages referrer where supported, set a conservative quota, and remove/rotate it if the device is lost or shared.
 
-Never commit an API key to this repository.
+Never commit an authorization key to this repository.

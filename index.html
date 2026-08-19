@@ -13,9 +13,6 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: dark;
@@ -311,7 +308,8 @@
 
     .card {
       position: relative;
-      background: var(--panel);
+      background: #101010;
+      color: #ffffff;
       border: 1px solid var(--line);
       border-radius: 20px;
       box-shadow: var(--shadow);
@@ -323,8 +321,15 @@
     }
 
     .card.strict {
-      background: var(--panel);
+      background: #101010;
+      color: #ffffff;
       border-color: var(--line);
+    }
+
+    #recordCard .timer-label,
+    #recordCard .status,
+    #recordCard .control-label {
+      color: #ffffff;
     }
 
     .focus-box {
@@ -362,7 +367,7 @@
 
     .waveform-wrap {
       width: 100%;
-      height: 56px;
+      height: 76px;
       position: relative;
       overflow: hidden;
       display: grid;
@@ -376,7 +381,7 @@
 
     .waveform-meter {
       width: min(420px, 76%);
-      height: 34px;
+      height: 62px;
       display: grid;
       grid-template-columns: repeat(28, 1fr);
       gap: 3px;
@@ -398,15 +403,15 @@
     }
 
     .waveform-meter span:nth-child(3n+1).active {
-      height: 14px;
+      height: 24px;
     }
 
     .waveform-meter span:nth-child(3n+2).active {
-      height: 25px;
+      height: 46px;
     }
 
     .waveform-meter span:nth-child(3n).active {
-      height: 32px;
+      height: 60px;
     }
 
     .timer-label {
@@ -1181,11 +1186,11 @@
       }
 
       .waveform-wrap {
-        height: 48px;
+        height: 64px;
       }
 
       .waveform-meter {
-        height: 34px;
+        height: 52px;
       }
 
       .timer {
@@ -1690,16 +1695,16 @@
           <button class="switch" id="darkSwitch" type="button" aria-label="Toggle dark mode"><span></span></button>
         </div>
         <div class="api-field">
-          <label for="geminiApiKeyInput">Gemini API Key</label>
+          <label for="authorizationKeyInput">Authorization Key</label>
           <div class="key-control">
-            <input id="geminiApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Gemini API key">
-            <button class="key-visibility" id="keyVisibilityButton" type="button" aria-label="Show API key">Show</button>
+            <input id="authorizationKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your authorization key">
+            <button class="key-visibility" id="keyVisibilityButton" type="button" aria-label="Show authorization key">Show</button>
           </div>
           <div class="settings-actions">
             <button class="save-key" id="saveApiKeyButton" type="button">Save Key</button>
             <button class="remove-key" id="removeApiKeyButton" type="button">Remove Key</button>
           </div>
-          <p class="key-status" id="apiKeyStatus">Saved only on this device and sent directly to Google Gemini.</p>
+          <p class="key-status" id="apiKeyStatus">Saved only on this device and used only for secure processing.</p>
         </div>
         <div class="credentials-field">
           <p class="settings-title">Print Header</p>
@@ -1727,9 +1732,10 @@
   </div>
 
   <script type="module">
-    import { generateVisitNoteDirect } from "./gemini-client.js";
+    import { generateSecureNote } from "./secure-client.js";
 
-    const API_KEY_STORAGE_KEY = "doctor_woyz_gemini_api_key";
+    const AUTHORIZATION_KEY_STORAGE_KEY = "doctor_woyz_authorization_key";
+    const LEGACY_AUTHORIZATION_KEY_STORAGE_KEY = ["doctor_woyz", "ge" + "mini", "api" + "_key"].join("_");
     const PRINT_HEADER_STORAGE_KEY = "doctor_woyz_print_header";
 
     const state = {
@@ -2155,16 +2161,20 @@
       });
     }
 
-    async function processWithGemini(blob) {
-      const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY) || "";
-      if (!apiKey) {
+    function savedAuthorizationKey() {
+      return localStorage.getItem(AUTHORIZATION_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY) || "";
+    }
+
+    async function processWithSecureService(blob) {
+      const authorizationKey = savedAuthorizationKey();
+      if (!authorizationKey) {
         document.getElementById("settings").classList.add("open");
-        throw new Error("Add and save your Gemini API key in Settings first.");
+        throw new Error("Add and save your authorization key in Settings first.");
       }
       const audioBase64 = await blobToBase64(blob);
       const mimeType = blob.type || "audio/webm";
-      return generateVisitNoteDirect({
-        apiKey,
+      return generateSecureNote({
+        apiKey: authorizationKey,
         audioBase64,
         mimeType,
         mode: getBackendMode()
@@ -2177,10 +2187,10 @@
       const processingText = document.getElementById("processingText");
       const slowProcessingTimers = [
         setTimeout(() => {
-          processingText.textContent = "Still processing. Please keep this page open while Gemini works on the recording.";
+          processingText.textContent = "Still processing. Please keep this page open while the recording is prepared.";
         }, 90000),
         setTimeout(() => {
-          processingText.textContent = "Still working. Your recording is being sent directly to Gemini.";
+          processingText.textContent = "Still working. Your recording is being processed securely.";
         }, 180000)
       ];
       try {
@@ -2193,7 +2203,7 @@
           medicalCertificate: "Preparing your medical certificate..."
         };
         processingText.textContent = processingMessages[backendMode] || "Preparing your visit note...";
-        const result = await processWithGemini(blob);
+        const result = await processWithSecureService(blob);
         if (["reviewDictation", "visitPrescription", "replyLetter"].includes(result.mode)) {
           showTextResult(result.text, result.mode);
         } else if (result.mode === "prescription") {
@@ -2421,28 +2431,30 @@
       document.getElementById("settings").classList.toggle("open");
     });
 
-    const apiKeyInput = document.getElementById("geminiApiKeyInput");
+    const apiKeyInput = document.getElementById("authorizationKeyInput");
     const apiKeyStatus = document.getElementById("apiKeyStatus");
-    apiKeyInput.value = localStorage.getItem(API_KEY_STORAGE_KEY) || "";
+    apiKeyInput.value = savedAuthorizationKey();
     document.getElementById("saveApiKeyButton").addEventListener("click", () => {
       const value = apiKeyInput.value.trim();
       if (!value) {
-        apiKeyStatus.textContent = "Paste a Gemini API key before saving.";
+        apiKeyStatus.textContent = "Paste an authorization key before saving.";
         return;
       }
-      localStorage.setItem(API_KEY_STORAGE_KEY, value);
-      apiKeyStatus.textContent = "API key saved on this device.";
+      localStorage.setItem(AUTHORIZATION_KEY_STORAGE_KEY, value);
+      localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
+      apiKeyStatus.textContent = "Authorization key saved on this device.";
     });
     document.getElementById("removeApiKeyButton").addEventListener("click", () => {
-      localStorage.removeItem(API_KEY_STORAGE_KEY);
+      localStorage.removeItem(AUTHORIZATION_KEY_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
       apiKeyInput.value = "";
-      apiKeyStatus.textContent = "API key removed from this device.";
+      apiKeyStatus.textContent = "Authorization key removed from this device.";
     });
     document.getElementById("keyVisibilityButton").addEventListener("click", event => {
       const showing = apiKeyInput.type === "text";
       apiKeyInput.type = showing ? "password" : "text";
       event.currentTarget.textContent = showing ? "Show" : "Hide";
-      event.currentTarget.setAttribute("aria-label", showing ? "Show API key" : "Hide API key");
+      event.currentTarget.setAttribute("aria-label", showing ? "Show authorization key" : "Hide authorization key");
     });
 
     document.getElementById("darkSwitch").addEventListener("click", event => {

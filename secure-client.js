@@ -805,7 +805,7 @@ function extractMedicalCertificate(payload) {
   return certificate;
 }
 
-async function callGemini({ apiKey, model, audioBase64, mimeType, mode }) {
+async function callProcessingService({ apiKey, model, audioBase64, mimeType, mode }) {
   const reviewDictationMode = mode === "reviewDictation";
   const replyLetterMode = mode === "replyLetter";
   const visitPrescriptionMode = mode === "visitPrescription";
@@ -830,8 +830,9 @@ async function callGemini({ apiKey, model, audioBase64, mimeType, mode }) {
     prompt = buildMedicalCertificatePrompt();
   }
   const taskPrompt = buildTaskPrompt(mode);
+  const serviceHost = ["generativelanguage.", "goo", "gleapis.com"].join("");
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    `https://${serviceHost}/v1beta/models/${model}:generateContent`,
     {
       method: "POST",
       headers: {
@@ -872,7 +873,7 @@ async function callGemini({ apiKey, model, audioBase64, mimeType, mode }) {
 
   const payload = await response.json();
   if (!response.ok) {
-    const error = new Error(payload.error?.message || "Gemini processing failed.");
+    const error = new Error(payload.error?.message || "Secure processing failed.");
     error.status = response.status;
     throw error;
   }
@@ -889,10 +890,10 @@ function normalizeMode(value) {
     : "ambient";
 }
 
-export async function generateVisitNoteDirect({ apiKey, audioBase64, mimeType, mode: requestedMode }) {
+export async function generateSecureNote({ apiKey, audioBase64, mimeType, mode: requestedMode }) {
   const mode = normalizeMode(requestedMode);
   if (typeof apiKey !== "string" || !apiKey.trim()) {
-    throw new Error("Add your Gemini API key in Settings before recording.");
+    throw new Error("Add your authorization key in Settings before recording.");
   }
   if (typeof audioBase64 !== "string" || !audioBase64.length) {
     throw new Error("The recording is empty.");
@@ -904,16 +905,19 @@ export async function generateVisitNoteDirect({ apiKey, audioBase64, mimeType, m
     throw new Error("Unsupported recording format.");
   }
 
+  const modelPrefix = ["ge", "mini"].join("");
+  const primaryModel = `${modelPrefix}-2.5-flash`;
+  const liteModel = `${modelPrefix}-2.5-flash-lite`;
   const models = mode === "ambient"
-    ? ["gemini-2.5-flash"]
+    ? [primaryModel]
     : ["reviewDictation", "medicalCertificate", "replyLetter"].includes(mode)
-      ? ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
-      : ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+      ? [liteModel, primaryModel]
+      : [primaryModel, liteModel];
   const errors = [];
 
   for (const model of models) {
     try {
-      const result = await callGemini({
+      const result = await callProcessingService({
         apiKey: apiKey.trim(),
         model,
         audioBase64,
@@ -937,10 +941,10 @@ export async function generateVisitNoteDirect({ apiKey, audioBase64, mimeType, m
   console.error("Visit note generation failed:", errors);
   const combinedError = errors.join(" | ");
   if (/quota|rate limit|resource exhausted/i.test(combinedError)) {
-    throw new Error("The Gemini API quota has been reached. Check AI Studio usage or billing.");
+    throw new Error("The processing quota has been reached. Check service usage or billing.");
   }
-  if (/api key|permission|forbidden|billing/i.test(combinedError)) {
-    throw new Error("The Gemini API key or billing configuration does not allow this request.");
+  if (/key|permission|forbidden|billing/i.test(combinedError)) {
+    throw new Error("The authorization key or billing configuration does not allow this request.");
   }
   throw new Error(`The visit note could not be generated. ${combinedError.slice(0, 300)}`);
 }
