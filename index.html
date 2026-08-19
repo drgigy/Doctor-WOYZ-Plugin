@@ -395,7 +395,7 @@
 
     .waveform-wrap {
       width: 100%;
-      height: 76px;
+      height: 118px;
       position: relative;
       overflow: hidden;
       display: grid;
@@ -409,7 +409,7 @@
 
     .waveform-meter {
       width: min(420px, 76%);
-      height: 62px;
+      height: 96px;
       display: grid;
       grid-template-columns: repeat(28, 1fr);
       gap: 3px;
@@ -418,28 +418,18 @@
     }
 
     .waveform-meter span {
-      height: 4px;
+      height: 0;
       border-radius: 999px 999px 3px 3px;
       background: rgba(255, 81, 74, 0.22);
-      opacity: 0.65;
-      transition: height 0.08s linear, background 0.08s linear, opacity 0.08s linear;
+      opacity: 0;
+      transform-origin: bottom center;
+      transition: height 0.08s linear, background 0.08s linear, opacity 0.08s linear, box-shadow 0.08s linear;
     }
 
     .waveform-meter span.active {
       background: #ff514a;
       opacity: 1;
-    }
-
-    .waveform-meter span:nth-child(3n+1).active {
-      height: 24px;
-    }
-
-    .waveform-meter span:nth-child(3n+2).active {
-      height: 46px;
-    }
-
-    .waveform-meter span:nth-child(3n).active {
-      height: 60px;
+      box-shadow: 0 0 10px rgba(255, 81, 74, 0.35);
     }
 
     .timer-label {
@@ -1241,11 +1231,11 @@
       }
 
       .waveform-wrap {
-        height: 64px;
+        height: 92px;
       }
 
       .waveform-meter {
-        height: 52px;
+        height: 74px;
       }
 
       .timer {
@@ -1988,9 +1978,18 @@
     }
 
     function setWaveformLevel(level = 0) {
-      const activeBars = Math.min(28, Math.max(0, Math.round(level * 95)));
-      [...waveformMeter.children].forEach((bar, index) => {
-        bar.classList.toggle("active", index < activeBars);
+      const bars = [...waveformMeter.children];
+      const center = (bars.length - 1) / 2;
+      const speechLevel = Math.max(0, Math.min(1, (level - 0.012) * 5.2));
+      bars.forEach((bar, index) => {
+        const distance = Math.abs(index - center) / center;
+        const fountain = Math.max(0.18, 1 - Math.pow(distance, 1.55));
+        const height = speechLevel > 0
+          ? 8 + speechLevel * (26 + fountain * 70)
+          : 0;
+        bar.style.height = `${height.toFixed(1)}px`;
+        bar.classList.toggle("active", speechLevel > 0);
+        bar.style.opacity = speechLevel > 0 ? String(0.35 + fountain * 0.65) : "";
       });
     }
 
