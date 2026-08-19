@@ -15,17 +15,17 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #0c0c0d;
-      --panel: #181818;
-      --panel-soft: #111111;
-      --text: #ffffff;
-      --muted: #a0a0a6;
-      --line: #2d2d30;
+      color-scheme: light;
+      --bg: #ffffff;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #d1d5db;
       --blue: #ef4f4f;
       --blue-dark: #dc2626;
       --indigo: #b91c1c;
-      --shadow: none;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     }
 
     .dark {
@@ -182,8 +182,8 @@
       position: sticky;
       top: 0;
       z-index: 10;
-      border-bottom: 1px solid #313131;
-      background: #0c0c0d;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
       backdrop-filter: none;
     }
 
@@ -609,15 +609,11 @@
     }
 
     .dictation-options {
-      display: none;
+      display: flex;
       gap: 11px;
       flex-wrap: wrap;
       justify-content: center;
       max-width: 675px;
-    }
-
-    .dictation-options.visible {
-      display: flex;
     }
 
     .mode-option {
@@ -1511,9 +1507,8 @@
         </div>
 
         <div class="mode-panel">
-          <button class="mode-toggle" id="dictationModeToggle" type="button">Mode</button>
           <div class="dictation-options" id="dictationOptions">
-            <button class="mode-option active" data-dictation-mode="reviewDictation" type="button">Review dictation</button>
+            <button class="mode-option" data-dictation-mode="reviewDictation" type="button">Review dictation</button>
             <button class="mode-option" data-dictation-mode="prescription" type="button">Prescription</button>
             <button class="mode-option" data-dictation-mode="visitPrescription" type="button">Visit + prescription</button>
             <button class="mode-option" data-dictation-mode="replyLetter" type="button">Reply letter</button>
@@ -1877,10 +1872,8 @@
 
     function updateModeUi() {
       const dictationActive = state.inputMode === "dictation";
-      document.getElementById("dictationModeToggle").classList.toggle("active", dictationActive);
-      document.getElementById("dictationOptions").classList.toggle("visible", dictationActive);
       document.querySelectorAll("[data-dictation-mode]").forEach(button => {
-        button.classList.toggle("active", button.dataset.dictationMode === state.dictationMode);
+        button.classList.toggle("active", dictationActive && button.dataset.dictationMode === state.dictationMode);
       });
       document.querySelector(".intro").textContent = dictationActive ? getModeLabel() : "Ambient Mode";
       recordCard.classList.toggle("strict", dictationActive);
@@ -2417,12 +2410,6 @@
 
     window.addEventListener("beforeunload", () => {
       if (state.stream) state.stream.getTracks().forEach(track => track.stop());
-    });
-
-    document.getElementById("dictationModeToggle").addEventListener("click", () => {
-      state.inputMode = state.inputMode === "ambient" ? "dictation" : "ambient";
-      updateModeUi();
-      focusKeyboardShortcuts();
     });
 
     document.querySelectorAll("[data-dictation-mode]").forEach(button => {
