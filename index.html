@@ -418,11 +418,10 @@
     }
 
     .waveform-meter span {
-      height: 0;
+      height: 4px;
       border-radius: 999px 999px 3px 3px;
       background: rgba(255, 81, 74, 0.22);
-      opacity: 0;
-      transform-origin: bottom center;
+      opacity: 0.55;
       transition: height 0.08s linear, background 0.08s linear, opacity 0.08s linear, box-shadow 0.08s linear;
     }
 
@@ -430,6 +429,18 @@
       background: #ff514a;
       opacity: 1;
       box-shadow: 0 0 10px rgba(255, 81, 74, 0.35);
+    }
+
+    .waveform-meter span:nth-child(3n+1).active {
+      height: 34px;
+    }
+
+    .waveform-meter span:nth-child(3n+2).active {
+      height: 68px;
+    }
+
+    .waveform-meter span:nth-child(3n).active {
+      height: 92px;
     }
 
     .timer-label {
@@ -1978,18 +1989,12 @@
     }
 
     function setWaveformLevel(level = 0) {
-      const bars = [...waveformMeter.children];
-      const center = (bars.length - 1) / 2;
-      const speechLevel = Math.max(0, Math.min(1, (level - 0.012) * 5.2));
-      bars.forEach((bar, index) => {
-        const distance = Math.abs(index - center) / center;
-        const fountain = Math.max(0.18, 1 - Math.pow(distance, 1.55));
-        const height = speechLevel > 0
-          ? 8 + speechLevel * (26 + fountain * 70)
-          : 0;
-        bar.style.height = `${height.toFixed(1)}px`;
-        bar.classList.toggle("active", speechLevel > 0);
-        bar.style.opacity = speechLevel > 0 ? String(0.35 + fountain * 0.65) : "";
+      const sensitivity = Math.max(0, level - 0.006) * 210;
+      const activeBars = Math.min(28, Math.max(0, Math.round(sensitivity)));
+      [...waveformMeter.children].forEach((bar, index) => {
+        bar.style.height = "";
+        bar.style.opacity = "";
+        bar.classList.toggle("active", index < activeBars);
       });
     }
 
