@@ -344,7 +344,9 @@
     #recordCard {
       background: #101010;
       color: #ffffff;
-      padding-bottom: 54px;
+      border: 4px solid var(--blue);
+      box-shadow: 0 22px 48px rgba(15, 23, 42, 0.12), 0 0 0 8px rgba(239, 79, 79, 0.08);
+      padding-bottom: 86px;
     }
 
     #recordCard .timer-label,
@@ -610,7 +612,16 @@
     }
 
     #recordCard .mode-panel {
-      margin-top: 18px;
+      margin-top: 28px;
+    }
+
+    .mode-heading {
+      margin: 0;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .mode-toggle {
@@ -1215,7 +1226,8 @@
       }
 
       #recordCard {
-        padding-bottom: 42px;
+        border-width: 3px;
+        padding-bottom: 64px;
       }
 
       .focus-box {
@@ -1257,6 +1269,14 @@
       .mode-panel {
         margin-top: 9px;
         gap: 9px;
+      }
+
+      #recordCard .mode-panel {
+        margin-top: 20px;
+      }
+
+      .mode-heading {
+        font-size: 13px;
       }
 
       .mode-toggle {
@@ -1330,7 +1350,8 @@
       }
 
       #recordCard {
-        padding-bottom: 44px;
+        border-width: 3px;
+        padding-bottom: 62px;
       }
 
       .focus-box {
@@ -1550,6 +1571,7 @@
           <div class="status" id="status">Tap microphone to start dictation</div>
 
           <div class="mode-panel">
+            <p class="mode-heading">Dictation Mode</p>
             <div class="dictation-options" id="dictationOptions">
               <button class="mode-option" data-dictation-mode="reviewDictation" type="button">Review dictation</button>
               <button class="mode-option" data-dictation-mode="prescription" type="button">Prescription</button>
