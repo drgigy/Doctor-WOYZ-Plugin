@@ -330,6 +330,7 @@
     }
 
     #recordCard .timer-label,
+    #recordCard .timer,
     #recordCard .status,
     #recordCard .control-label {
       color: #ffffff;
@@ -588,6 +589,10 @@
       display: grid;
       justify-items: center;
       gap: 11px;
+    }
+
+    #recordCard .mode-panel {
+      margin-top: 18px;
     }
 
     .mode-toggle {
@@ -1504,15 +1509,15 @@
             </span>
           </div>
           <div class="status" id="status">Tap microphone to start dictation</div>
-        </div>
 
-        <div class="mode-panel">
-          <div class="dictation-options" id="dictationOptions">
-            <button class="mode-option" data-dictation-mode="reviewDictation" type="button">Review dictation</button>
-            <button class="mode-option" data-dictation-mode="prescription" type="button">Prescription</button>
-            <button class="mode-option" data-dictation-mode="visitPrescription" type="button">Visit + prescription</button>
-            <button class="mode-option" data-dictation-mode="replyLetter" type="button">Reply letter</button>
-            <button class="mode-option" data-dictation-mode="medicalCertificate" type="button">Medical certificate</button>
+          <div class="mode-panel">
+            <div class="dictation-options" id="dictationOptions">
+              <button class="mode-option" data-dictation-mode="reviewDictation" type="button">Review dictation</button>
+              <button class="mode-option" data-dictation-mode="prescription" type="button">Prescription</button>
+              <button class="mode-option" data-dictation-mode="visitPrescription" type="button">Visit + prescription</button>
+              <button class="mode-option" data-dictation-mode="replyLetter" type="button">Reply letter</button>
+              <button class="mode-option" data-dictation-mode="medicalCertificate" type="button">Medical certificate</button>
+            </div>
           </div>
         </div>
 
