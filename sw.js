@@ -1,8 +1,7 @@
-const CACHE_NAME = "doctor-woyz-local-secure-v35";
+const CACHE_NAME = "doctor-woyz-local-secure-v36";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./admin.html",
   "./main.html",
   "./device-approval.js",
   "./firebase-config.js",
@@ -36,6 +35,22 @@ self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.endsWith("/admin.html")) {
+    event.respondWith(
+      fetch(event.request, { cache: "no-store" })
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(async () => {
+          return await caches.match(event.request)
+            || await caches.match("./offline.html");
+        })
+    );
+    return;
+  }
 
   if (event.request.mode === "navigate") {
     event.respondWith(
