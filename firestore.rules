@@ -15,21 +15,17 @@ service cloud.firestore {
 
     function allowedDeviceCreate(deviceId) {
       return signedIn()
-        && request.resource.data.keys().hasOnly([
+        && request.resource.data.keys().hasAll([
           "id",
           "ownerUid",
-          "status",
-          "label",
-          "userName",
-          "requestedAt",
-          "userAgent"
+          "status"
         ])
         && request.resource.data.id == deviceId
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.status == "pending"
-        && request.resource.data.label is string
-        && request.resource.data.userName is string
-        && request.resource.data.userAgent is string;
+        && (!("label" in request.resource.data) || request.resource.data.label is string)
+        && (!("userName" in request.resource.data) || request.resource.data.userName is string)
+        && (!("userAgent" in request.resource.data) || request.resource.data.userAgent is string);
     }
 
     match /deviceApprovals/{deviceId} {
