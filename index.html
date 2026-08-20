@@ -1332,35 +1332,40 @@
     }
 
     @media (max-width: 720px) {
+      body {
+        overflow-x: hidden;
+      }
+
       .topbar-inner {
-        min-height: 60px;
-        justify-content: flex-start;
-        padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+        min-height: 54px;
+        justify-content: center;
+        padding: 7px max(10px, env(safe-area-inset-right)) 7px max(10px, env(safe-area-inset-left));
       }
 
       .brand {
-        gap: 12px;
+        gap: 10px;
         min-width: 0;
+        padding: 3px;
       }
 
       .brand-doctor {
-        font-size: 24px;
+        font-size: clamp(21px, 6vw, 24px);
       }
 
       .brand-mark {
-        width: 17px;
-        height: 17px;
+        width: 16px;
+        height: 16px;
         border-radius: 999px;
         font-size: 0;
-        box-shadow: 0 0 0 9px rgba(255, 69, 69, 0.14);
+        box-shadow: 0 0 0 8px rgba(255, 69, 69, 0.14);
       }
 
       .brand-title {
-        gap: 12px;
+        gap: 10px;
         border-width: 3px;
-        border-radius: 24px;
-        padding: 10px 20px 10px 16px;
-        font-size: 24px;
+        border-radius: 23px;
+        padding: 8px 18px 8px 14px;
+        font-size: clamp(21px, 6vw, 24px);
         white-space: nowrap;
       }
 
@@ -1376,28 +1381,67 @@
       }
 
       main {
-        padding: 16px 12px calc(82px + env(safe-area-inset-bottom));
+        padding: 9px 8px calc(74px + env(safe-area-inset-bottom));
+      }
+
+      #recordView {
+        max-height: none;
+        overflow: visible;
       }
 
       .intro {
-        margin-bottom: 18px;
-        font-size: 14px;
+        margin-bottom: 8px;
+        padding: 7px 18px;
+        font-size: 16px;
+        line-height: 1.2;
       }
 
       .card {
         border-radius: 14px;
-        padding: 18px 14px;
+        padding: 12px 10px 16px;
       }
 
       #recordCard {
         border-width: 3px;
-        padding-bottom: 62px;
+        border-radius: 18px;
+        padding: 12px 10px 20px;
       }
 
       .focus-box {
-        min-height: 148px;
-        margin-bottom: 18px;
-        padding: 18px;
+        min-height: 184px;
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 16px;
+      }
+
+      .focus-inner {
+        gap: 5px;
+      }
+
+      .waveform-wrap {
+        height: 84px;
+        padding: 6px 8px;
+        border-radius: 12px;
+      }
+
+      .waveform-meter {
+        width: min(310px, 78%);
+        height: 64px;
+        gap: 2px;
+      }
+
+      .waveform-meter.idle-state span:nth-child(1) { height: 16px; }
+      .waveform-meter.idle-state span:nth-child(2) { height: 27px; }
+      .waveform-meter.idle-state span:nth-child(3) { height: 20px; }
+      .waveform-meter.idle-state span:nth-child(4) { height: 38px; }
+      .waveform-meter.idle-state span:nth-child(5) { height: 25px; }
+      .waveform-meter.idle-state span:nth-child(6) { height: 33px; }
+      .waveform-meter.idle-state span:nth-child(7) { height: 18px; }
+      .waveform-meter.idle-state span:nth-child(8) { height: 28px; }
+
+      .timer-label {
+        font-size: 12px;
+        letter-spacing: 0.07em;
       }
 
       .controls {
@@ -1405,8 +1449,8 @@
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 12px;
-        min-height: 72px;
+        gap: 8px;
+        min-height: 58px;
       }
 
       .control-item {
@@ -1434,9 +1478,14 @@
       }
 
       .round.record {
-        width: 76px;
-        height: 76px;
+        width: 64px;
+        height: 64px;
         border-radius: 999px;
+      }
+
+      .round.record svg {
+        width: 26px;
+        height: 26px;
       }
 
       .extend-button {
@@ -1446,12 +1495,48 @@
       }
 
       .timer {
-        font-size: 26px;
+        font-size: 34px;
       }
 
       .status {
-        margin-top: 10px;
+        min-height: 18px;
+        margin-top: 6px;
+        font-size: 14px;
+        line-height: 1.25;
+      }
+
+      #recordCard .mode-panel {
+        margin-top: 18px;
+        gap: 10px;
+      }
+
+      .mode-heading {
+        font-size: 14px;
+        letter-spacing: 0.08em;
+      }
+
+      .dictation-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .mode-option {
+        min-width: 0;
+        width: 100%;
+        border-width: 3px;
+        padding: 10px 8px;
         font-size: 13px;
+        line-height: 1.15;
+        white-space: normal;
+      }
+
+      .mode-option[data-dictation-mode="medicalCertificate"] {
+        grid-column: 1 / -1;
+        width: min(100%, 230px);
+        justify-self: center;
       }
 
       .result-header {
