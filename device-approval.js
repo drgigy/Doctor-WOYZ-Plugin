@@ -39,6 +39,10 @@ export function remoteApprovalConfigured() {
 export function deviceId() {
   const saved = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
   if (saved) return saved;
+  return createDeviceId();
+}
+
+function createDeviceId() {
   const bytes = new Uint8Array(6);
   crypto.getRandomValues(bytes);
   const id = [...bytes]
@@ -49,6 +53,11 @@ export function deviceId() {
     .join("-");
   localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
   return id;
+}
+
+function resetDeviceId() {
+  localStorage.removeItem(DEVICE_ID_STORAGE_KEY);
+  return createDeviceId();
 }
 
 function localRegistry() {
@@ -127,7 +136,16 @@ export async function ensureDeviceApprovalRequest(options = {}) {
   const { auth, db } = activeServices;
   const user = await anonymousUser(auth);
   const ref = doc(db, DEVICE_COLLECTION, id);
-  const snapshot = await getDoc(ref);
+  let snapshot;
+  try {
+    snapshot = await getDoc(ref);
+  } catch (error) {
+    if (!options.retryAfterDeviceReset && error?.code === "permission-denied") {
+      resetDeviceId();
+      return ensureDeviceApprovalRequest({ ...options, retryAfterDeviceReset: true });
+    }
+    throw error;
+  }
   if (!snapshot.exists()) {
     await setDoc(ref, {
       id,

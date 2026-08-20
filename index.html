@@ -1906,13 +1906,30 @@
       return approved;
     }
 
+    function approvalErrorMessage(error) {
+      console.error("Device approval check failed", error);
+      if (error?.code === "auth/unauthorized-domain") {
+        return "This website domain is not allowed for approval. Add doctor.woyz.in as an authorized domain, then try again.";
+      }
+      if (error?.code === "auth/operation-not-allowed") {
+        return "Device approval sign-in is not enabled.";
+      }
+      if (error?.code === "permission-denied") {
+        return "Device approval was blocked. Tap Check Approval again to create a fresh request.";
+      }
+      if (error?.code === "unavailable") {
+        return "Network unavailable. Check the internet connection and try again.";
+      }
+      return "Device approval could not be checked.";
+    }
+
     async function startDeviceLock() {
       setDeviceLock(false, "Checking device approval...");
       try {
         await ensureDeviceApprovalRequest();
         await watchCurrentDeviceApproval(({ record, error }) => {
           if (error) {
-            setDeviceLock(false, "Device approval could not be checked.");
+            setDeviceLock(false, approvalErrorMessage(error));
             return;
           }
           const approved = record?.status === "approved";
@@ -1926,7 +1943,7 @@
           setDeviceLock(approved, approved ? "" : "Waiting for admin approval.");
         });
       } catch (error) {
-        setDeviceLock(false, "Device approval could not be checked.");
+        setDeviceLock(false, approvalErrorMessage(error));
       }
     }
 
@@ -2602,8 +2619,8 @@
           const approved = record?.status === "approved";
           setDeviceLock(approved, approved ? "Device approved." : "Waiting for admin approval.");
         })
-        .catch(() => {
-          setDeviceLock(false, "Device approval could not be checked.");
+        .catch(error => {
+          setDeviceLock(false, approvalErrorMessage(error));
         });
     });
 
