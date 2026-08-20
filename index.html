@@ -1567,6 +1567,10 @@
         <label for="deviceIdDisplay">Device ID</label>
         <input id="deviceIdDisplay" type="text" readonly>
       </div>
+      <div class="approval-field">
+        <label for="approvalUserName">User Name</label>
+        <input id="approvalUserName" type="text" autocomplete="name" spellcheck="false" placeholder="Enter user name">
+      </div>
       <button class="approve-button" id="checkApprovalButton" type="button">Check Approval</button>
       <p class="approval-message" id="approvalMessage"></p>
     </div>
@@ -2591,7 +2595,9 @@
     });
 
     document.getElementById("checkApprovalButton").addEventListener("click", () => {
-      ensureDeviceApprovalRequest()
+      ensureDeviceApprovalRequest({
+        userName: document.getElementById("approvalUserName").value
+      })
         .then(({ record }) => {
           const approved = record?.status === "approved";
           setDeviceLock(approved, approved ? "Device approved." : "Waiting for admin approval.");

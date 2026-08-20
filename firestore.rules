@@ -20,6 +20,7 @@ service cloud.firestore {
           "ownerUid",
           "status",
           "label",
+          "userName",
           "requestedAt",
           "userAgent"
         ])
@@ -27,6 +28,7 @@ service cloud.firestore {
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.status == "pending"
         && request.resource.data.label is string
+        && request.resource.data.userName is string
         && request.resource.data.userAgent is string;
     }
 
@@ -34,6 +36,13 @@ service cloud.firestore {
       allow create: if allowedDeviceCreate();
       allow get: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
       allow list: if isAdmin();
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && resource.data.status == "pending"
+        && request.resource.data.status == "pending"
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["userName"])
+        && request.resource.data.userName is string;
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           "status",

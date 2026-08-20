@@ -300,6 +300,10 @@
       line-height: 1.5;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     @media (max-width: 720px) {
       .topbar {
         min-height: 88px;
@@ -357,7 +361,7 @@
       </div>
       <div class="actions">
         <a class="button secondary" href="index.html">Back to App</a>
-        <button class="button secondary" id="signOutButton" type="button">Sign Out</button>
+        <button class="button secondary hidden" id="signOutButton" type="button">Sign Out</button>
       </div>
     </section>
 
@@ -374,7 +378,7 @@
     </section>
     <p class="admin-message" id="adminMessage"></p>
 
-    <section class="login-panel key-panel" id="authorizationPanel">
+    <section class="login-panel key-panel hidden" id="authorizationPanel" data-auth-only>
       <div class="login-field">
         <label for="adminAuthorizationKey">Authorization Key</label>
         <input id="adminAuthorizationKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste key to send to approved devices">
@@ -382,7 +386,7 @@
       <button class="button" id="saveAuthorizationKeyButton" type="button">Save Key</button>
     </section>
 
-    <section class="admin-card">
+    <section class="admin-card hidden" data-auth-only>
       <div class="admin-card-header">
         <h2>Device Lock</h2>
         <span class="status-pill" id="deviceCount">0 devices</span>
@@ -390,7 +394,7 @@
       <div class="device-list" id="deviceList"></div>
     </section>
 
-    <p class="notice">Use the admin account listed in the security rules. Devices can request access automatically; only admin can approve or revoke access.</p>
+    <p class="notice hidden" data-auth-only>Use the admin account listed in the security rules. Devices can request access automatically; only admin can approve or revoke access.</p>
   </main>
 
   <script type="module">
@@ -399,15 +403,16 @@
       adminSignOut,
       approveDevice,
       deviceId,
-      ensureDeviceApprovalRequest,
       removeDevice,
       revokeDevice,
       saveAuthorizationKey,
-      watchAdminDevices
+      watchAdminDevices,
+      watchAdminSession
     } from "./device-approval.js";
 
     let devices = [];
     let unsubscribeDevices = null;
+    let signedIn = false;
 
     function formatDate(value) {
       if (!value) return "Not recorded";
@@ -440,6 +445,7 @@
     }
 
     function renderDevices() {
+      if (!signedIn) return;
       const id = deviceId();
       const sortedDevices = [...devices].sort((a, b) => {
         if (a.id === id) return -1;
@@ -457,12 +463,13 @@
       list.innerHTML = sortedDevices.map(device => {
         const safeId = escapeHtml(device.id);
         const safeLabel = escapeHtml(device.label || "Device");
+        const safeUserName = escapeHtml(device.userName || "Name not entered");
         return `
         <article class="device-row">
           <div>
             <div class="device-id">${safeId}</div>
             <div class="device-meta">
-              ${device.id === id ? "This device" : safeLabel} · ${statusLabel(device.status)}<br>
+              ${safeUserName} · ${device.id === id ? "This device" : safeLabel} · ${statusLabel(device.status)}<br>
               Requested: ${escapeHtml(formatDate(device.requestedAt))}${device.approvedAt ? `<br>Approved: ${escapeHtml(formatDate(device.approvedAt))}` : ""}
             </div>
           </div>
@@ -475,6 +482,33 @@
         </article>
       `;
       }).join("");
+    }
+
+    function stopDeviceList() {
+      if (unsubscribeDevices) {
+        unsubscribeDevices();
+        unsubscribeDevices = null;
+      }
+      devices = [];
+      document.getElementById("deviceList").innerHTML = "";
+      document.getElementById("deviceCount").textContent = "0 devices";
+    }
+
+    function setSignedIn(user) {
+      signedIn = Boolean(user?.email && !user.isAnonymous);
+      document.getElementById("loginPanel").classList.toggle("hidden", signedIn);
+      document.getElementById("signOutButton").classList.toggle("hidden", !signedIn);
+      document.querySelectorAll("[data-auth-only]").forEach(element => {
+        element.classList.toggle("hidden", !signedIn);
+      });
+      if (signedIn) {
+        setAdminMessage(`Signed in as ${user.email}.`);
+        startDeviceList().catch(() => {
+          setAdminMessage("Device list could not be loaded.");
+        });
+      } else {
+        stopDeviceList();
+      }
     }
 
     async function startDeviceList() {
@@ -501,8 +535,6 @@
       }
       try {
         await adminSignIn(email, password);
-        setAdminMessage("Signed in.");
-        await startDeviceList();
       } catch (error) {
         setAdminMessage("Admin sign in failed.");
       }
@@ -510,9 +542,6 @@
 
     document.getElementById("signOutButton").addEventListener("click", async () => {
       await adminSignOut();
-      if (unsubscribeDevices) unsubscribeDevices();
-      devices = [];
-      renderDevices();
       setAdminMessage("Signed out.");
     });
 
@@ -541,11 +570,11 @@
       }
     });
 
-    ensureDeviceApprovalRequest().catch(() => {});
-    startDeviceList().catch(() => {
-      setAdminMessage("Sign in with an approved admin account to view devices.");
+    watchAdminSession(({ user }) => {
+      setSignedIn(user);
+    }).catch(() => {
+      setAdminMessage("Admin session could not be checked.");
     });
-    renderDevices();
   </script>
 </body>
 </html>

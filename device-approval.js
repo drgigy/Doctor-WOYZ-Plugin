@@ -64,16 +64,25 @@ function writeLocalRegistry(registry) {
   localStorage.setItem(LOCAL_REGISTRY_STORAGE_KEY, JSON.stringify(registry));
 }
 
-function localDeviceRequest() {
+function cleanUserName(value) {
+  return String(value || "").trim().slice(0, 80);
+}
+
+function localDeviceRequest(options = {}) {
   const id = deviceId();
   const registry = localRegistry();
+  const userName = cleanUserName(options.userName);
   if (!registry[id]) {
     registry[id] = {
       id,
       status: "pending",
       label: deviceLabel(),
+      userName,
       requestedAt: new Date().toISOString()
     };
+    writeLocalRegistry(registry);
+  } else if (userName && registry[id].status !== "approved") {
+    registry[id] = { ...registry[id], userName };
     writeLocalRegistry(registry);
   }
   return registry[id];
@@ -109,10 +118,11 @@ async function anonymousUser(auth) {
   return await currentUser(auth) || (await signInAnonymously(auth)).user;
 }
 
-export async function ensureDeviceApprovalRequest() {
+export async function ensureDeviceApprovalRequest(options = {}) {
   const id = deviceId();
+  const userName = cleanUserName(options.userName);
   const activeServices = await services();
-  if (!activeServices) return { mode: "local", record: localDeviceRequest() };
+  if (!activeServices) return { mode: "local", record: localDeviceRequest({ userName }) };
 
   const { auth, db } = activeServices;
   const user = await anonymousUser(auth);
@@ -124,12 +134,18 @@ export async function ensureDeviceApprovalRequest() {
       ownerUid: user.uid,
       status: "pending",
       label: deviceLabel(),
+      userName,
       requestedAt: serverTimestamp(),
       userAgent: navigator.userAgent
     });
-    return { mode: "remote", record: { id, ownerUid: user.uid, status: "pending", label: deviceLabel() } };
+    return { mode: "remote", record: { id, ownerUid: user.uid, status: "pending", label: deviceLabel(), userName } };
   }
-  return { mode: "remote", record: { id, ...snapshot.data() } };
+  const record = { id, ...snapshot.data() };
+  if (userName && record.status !== "approved") {
+    await updateDoc(ref, { userName });
+    return { mode: "remote", record: { ...record, userName } };
+  }
+  return { mode: "remote", record };
 }
 
 export async function watchCurrentDeviceApproval(callback) {
@@ -158,6 +174,17 @@ export async function adminSignIn(email, password) {
 export async function adminSignOut() {
   const activeServices = await services();
   if (activeServices) await signOut(activeServices.auth);
+}
+
+export async function watchAdminSession(callback) {
+  const activeServices = await services();
+  if (!activeServices) {
+    callback({ mode: "local", user: null });
+    return () => {};
+  }
+  return onAuthStateChanged(activeServices.auth, user => {
+    callback({ mode: "remote", user });
+  });
 }
 
 export async function watchAdminDevices(callback) {
