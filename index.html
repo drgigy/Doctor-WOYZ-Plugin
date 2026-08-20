@@ -1656,6 +1656,14 @@
         <label for="approvalUserName">User Name</label>
         <input id="approvalUserName" type="text" autocomplete="name" spellcheck="false" placeholder="Enter user name">
       </div>
+      <div class="approval-field">
+        <label for="approvalMobileNumber">Mobile Number</label>
+        <input id="approvalMobileNumber" type="tel" autocomplete="tel" inputmode="tel" spellcheck="false" placeholder="Enter mobile number">
+      </div>
+      <div class="approval-field">
+        <label for="approvalEmail">Email ID</label>
+        <input id="approvalEmail" type="email" autocomplete="email" inputmode="email" spellcheck="false" placeholder="Enter email ID">
+      </div>
       <button class="approve-button" id="checkApprovalButton" type="button">Check Approval</button>
       <p class="approval-message" id="approvalMessage"></p>
     </div>
@@ -1939,7 +1947,7 @@
       deviceId,
       ensureDeviceApprovalRequest,
       watchCurrentDeviceApproval
-    } from "./device-approval.js?v=20260820-1600";
+    } from "./device-approval.js?v=20260820-1635";
 
     const AUTHORIZATION_KEY_STORAGE_KEY = "doctor_woyz_authorization_key";
     const LEGACY_AUTHORIZATION_KEY_STORAGE_KEY = ["doctor_woyz", "ge" + "mini", "api" + "_key"].join("_");
@@ -2706,7 +2714,9 @@
 
     document.getElementById("checkApprovalButton").addEventListener("click", () => {
       ensureDeviceApprovalRequest({
-        userName: document.getElementById("approvalUserName").value
+        userName: document.getElementById("approvalUserName").value,
+        mobileNumber: document.getElementById("approvalMobileNumber").value,
+        email: document.getElementById("approvalEmail").value
       })
         .then(({ record }) => {
           const approved = record?.status === "approved";

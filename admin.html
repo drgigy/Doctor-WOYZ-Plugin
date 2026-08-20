@@ -471,12 +471,15 @@
         const safeId = escapeHtml(device.id);
         const safeLabel = escapeHtml(device.label || "Device");
         const safeUserName = escapeHtml(device.userName || "Name not entered");
+        const safeMobileNumber = escapeHtml(device.mobileNumber || "Mobile not entered");
+        const safeEmail = escapeHtml(device.email || "Email not entered");
         return `
         <article class="device-row">
           <div>
             <div class="device-id">${safeId}</div>
             <div class="device-meta">
               ${safeUserName} · ${device.id === id ? "This device" : safeLabel} · ${statusLabel(device.status)}<br>
+              Mobile: ${safeMobileNumber} · Email: ${safeEmail}<br>
               Requested: ${escapeHtml(formatDate(device.requestedAt))}${device.approvedAt ? `<br>Approved: ${escapeHtml(formatDate(device.approvedAt))}` : ""}
             </div>
           </div>

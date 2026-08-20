@@ -77,21 +77,36 @@ function cleanUserName(value) {
   return String(value || "").trim().slice(0, 80);
 }
 
+function cleanMobileNumber(value) {
+  return String(value || "")
+    .replace(/[^\d+ -]/g, "")
+    .trim()
+    .slice(0, 24);
+}
+
+function cleanEmail(value) {
+  return String(value || "").trim().toLowerCase().slice(0, 120);
+}
+
 function localDeviceRequest(options = {}) {
   const id = deviceId();
   const registry = localRegistry();
   const userName = cleanUserName(options.userName);
+  const mobileNumber = cleanMobileNumber(options.mobileNumber);
+  const email = cleanEmail(options.email);
   if (!registry[id]) {
     registry[id] = {
       id,
       status: "pending",
       label: deviceLabel(),
       userName,
+      mobileNumber,
+      email,
       requestedAt: new Date().toISOString()
     };
     writeLocalRegistry(registry);
-  } else if (userName && registry[id].status !== "approved") {
-    registry[id] = { ...registry[id], userName };
+  } else if ((userName || mobileNumber || email) && registry[id].status !== "approved") {
+    registry[id] = { ...registry[id], userName, mobileNumber, email };
     writeLocalRegistry(registry);
   }
   return registry[id];
@@ -127,31 +142,35 @@ async function anonymousUser(auth) {
   return await currentUser(auth) || (await signInAnonymously(auth)).user;
 }
 
-async function createDeviceApprovalRequest(ref, id, user, userName) {
+async function createDeviceApprovalRequest(ref, id, user, userName, mobileNumber, email) {
   const record = {
     id,
     ownerUid: user.uid,
     status: "pending",
     label: deviceLabel(),
     userName,
+    mobileNumber,
+    email,
     requestedAt: serverTimestamp(),
     userAgent: navigator.userAgent
   };
   await setDoc(ref, record, { merge: true });
-  return { id, ownerUid: user.uid, status: "pending", label: record.label, userName };
+  return { id, ownerUid: user.uid, status: "pending", label: record.label, userName, mobileNumber, email };
 }
 
 export async function ensureDeviceApprovalRequest(options = {}) {
   const id = deviceId();
   const userName = cleanUserName(options.userName);
+  const mobileNumber = cleanMobileNumber(options.mobileNumber);
+  const email = cleanEmail(options.email);
   const activeServices = await services();
-  if (!activeServices) return { mode: "local", record: localDeviceRequest({ userName }) };
+  if (!activeServices) return { mode: "local", record: localDeviceRequest({ userName, mobileNumber, email }) };
 
   const { auth, db } = activeServices;
   const user = await anonymousUser(auth);
   const ref = doc(db, DEVICE_COLLECTION, id);
   try {
-    const record = await createDeviceApprovalRequest(ref, id, user, userName);
+    const record = await createDeviceApprovalRequest(ref, id, user, userName, mobileNumber, email);
     return { mode: "remote", record };
   } catch (writeError) {
     let snapshotAfterWriteError;

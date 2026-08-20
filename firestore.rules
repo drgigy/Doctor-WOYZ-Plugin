@@ -23,7 +23,9 @@ service cloud.firestore {
         && request.resource.data.id == deviceId
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.status == "pending"
+        && (!("email" in request.resource.data) || request.resource.data.email is string)
         && (!("label" in request.resource.data) || request.resource.data.label is string)
+        && (!("mobileNumber" in request.resource.data) || request.resource.data.mobileNumber is string)
         && (!("userName" in request.resource.data) || request.resource.data.userName is string)
         && (!("userAgent" in request.resource.data) || request.resource.data.userAgent is string);
     }
@@ -38,12 +40,16 @@ service cloud.firestore {
         && request.resource.data.status == "pending"
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          "email",
           "label",
+          "mobileNumber",
           "requestedAt",
           "userAgent",
           "userName"
         ])
+        && (!("email" in request.resource.data) || request.resource.data.email is string)
         && (!("label" in request.resource.data) || request.resource.data.label is string)
+        && (!("mobileNumber" in request.resource.data) || request.resource.data.mobileNumber is string)
         && (!("userName" in request.resource.data) || request.resource.data.userName is string)
         && (!("userAgent" in request.resource.data) || request.resource.data.userAgent is string);
       allow update: if isAdmin()
