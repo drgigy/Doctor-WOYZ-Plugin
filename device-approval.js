@@ -127,6 +127,20 @@ async function anonymousUser(auth) {
   return await currentUser(auth) || (await signInAnonymously(auth)).user;
 }
 
+async function createDeviceApprovalRequest(ref, id, user, userName) {
+  const record = {
+    id,
+    ownerUid: user.uid,
+    status: "pending",
+    label: deviceLabel(),
+    userName,
+    requestedAt: serverTimestamp(),
+    userAgent: navigator.userAgent
+  };
+  await setDoc(ref, record);
+  return { id, ownerUid: user.uid, status: "pending", label: record.label, userName };
+}
+
 export async function ensureDeviceApprovalRequest(options = {}) {
   const id = deviceId();
   const userName = cleanUserName(options.userName);
@@ -140,23 +154,23 @@ export async function ensureDeviceApprovalRequest(options = {}) {
   try {
     snapshot = await getDoc(ref);
   } catch (error) {
-    if (!options.retryAfterDeviceReset && error?.code === "permission-denied") {
-      resetDeviceId();
-      return ensureDeviceApprovalRequest({ ...options, retryAfterDeviceReset: true });
+    if (error?.code === "permission-denied") {
+      try {
+        const record = await createDeviceApprovalRequest(ref, id, user, userName);
+        return { mode: "remote", record };
+      } catch (createError) {
+        if (!options.retryAfterDeviceReset && createError?.code === "permission-denied") {
+          resetDeviceId();
+          return ensureDeviceApprovalRequest({ ...options, retryAfterDeviceReset: true });
+        }
+        throw createError;
+      }
     }
     throw error;
   }
   if (!snapshot.exists()) {
-    await setDoc(ref, {
-      id,
-      ownerUid: user.uid,
-      status: "pending",
-      label: deviceLabel(),
-      userName,
-      requestedAt: serverTimestamp(),
-      userAgent: navigator.userAgent
-    });
-    return { mode: "remote", record: { id, ownerUid: user.uid, status: "pending", label: deviceLabel(), userName } };
+    const record = await createDeviceApprovalRequest(ref, id, user, userName);
+    return { mode: "remote", record };
   }
   const record = { id, ...snapshot.data() };
   if (userName && record.status !== "approved") {
