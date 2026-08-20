@@ -1,9 +1,11 @@
-const CACHE_NAME = "doctor-woyz-local-secure-v32";
+const CACHE_NAME = "doctor-woyz-local-secure-v33";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./admin.html",
   "./main.html",
+  "./device-approval.js",
+  "./firebase-config.js",
   "./secure-client.js",
   "./manifest.webmanifest",
   "./offline.html",

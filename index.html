@@ -1565,12 +1565,8 @@
       <p>This device must be approved before Doctor WOYZ can be used.</p>
       <div class="approval-field">
         <label for="deviceIdDisplay">Device ID</label>
-        <div class="request-row">
-          <input id="deviceIdDisplay" type="text" readonly>
-          <button id="copyDeviceIdButton" type="button">Copy</button>
-        </div>
+        <input id="deviceIdDisplay" type="text" readonly>
       </div>
-      <a class="approve-button" href="admin.html" style="display:block;text-align:center;text-decoration:none;">Open Admin Page</a>
       <button class="approve-button" id="checkApprovalButton" type="button">Check Approval</button>
       <p class="approval-message" id="approvalMessage"></p>
     </div>
@@ -1862,12 +1858,15 @@
 
   <script type="module">
     import { generateSecureNote } from "./secure-client.js";
+    import {
+      deviceId,
+      ensureDeviceApprovalRequest,
+      watchCurrentDeviceApproval
+    } from "./device-approval.js";
 
     const AUTHORIZATION_KEY_STORAGE_KEY = "doctor_woyz_authorization_key";
     const LEGACY_AUTHORIZATION_KEY_STORAGE_KEY = ["doctor_woyz", "ge" + "mini", "api" + "_key"].join("_");
     const PRINT_HEADER_STORAGE_KEY = "doctor_woyz_print_header";
-    const DEVICE_ID_STORAGE_KEY = "doctor_woyz_device_id";
-    const DEVICE_REGISTRY_STORAGE_KEY = "doctor_woyz_device_registry";
 
     const state = {
       mediaRecorder: null,
@@ -1906,59 +1905,33 @@
     const DEFAULT_RECORDING_SECONDS = 300;
     const EXTEND_SECONDS = 300;
 
-    function readDeviceRegistry() {
-      try {
-        const parsed = JSON.parse(localStorage.getItem(DEVICE_REGISTRY_STORAGE_KEY) || "{}");
-        return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-      } catch {
-        return {};
-      }
-    }
-
-    function writeDeviceRegistry(registry) {
-      localStorage.setItem(DEVICE_REGISTRY_STORAGE_KEY, JSON.stringify(registry));
-    }
-
-    function deviceId() {
-      const saved = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
-      if (saved) return saved;
-      const bytes = new Uint8Array(6);
-      crypto.getRandomValues(bytes);
-      const id = [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("").toUpperCase().match(/.{1,4}/g).join("-");
-      localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
-      return id;
-    }
-
-    function ensureDeviceRequest() {
+    function setDeviceLock(approved, message = "") {
       const id = deviceId();
-      const registry = readDeviceRegistry();
-      if (!registry[id]) {
-        registry[id] = {
-          id,
-          status: "pending",
-          label: navigator.userAgent.includes("Android") ? "Android tablet" : "Browser device",
-          requestedAt: new Date().toISOString()
-        };
-        writeDeviceRegistry(registry);
-      }
-      return { id, record: registry[id] };
-    }
-
-    function isDeviceApproved() {
-      const { record } = ensureDeviceRequest();
-      return record.status === "approved";
-    }
-
-    function updateDeviceLock() {
-      const id = deviceId();
-      const approved = isDeviceApproved();
       document.getElementById("deviceIdDisplay").value = id;
       document.getElementById("approvalGate").classList.toggle("hidden", approved);
       document.getElementById("app").classList.toggle("locked", !approved);
+      document.getElementById("approvalMessage").textContent = message;
       return approved;
     }
 
-    updateDeviceLock();
+    async function startDeviceLock() {
+      setDeviceLock(false, "Checking device approval...");
+      try {
+        await ensureDeviceApprovalRequest();
+        await watchCurrentDeviceApproval(({ record, error }) => {
+          if (error) {
+            setDeviceLock(false, "Device approval could not be checked.");
+            return;
+          }
+          const approved = record?.status === "approved";
+          setDeviceLock(approved, approved ? "" : "Waiting for admin approval.");
+        });
+      } catch (error) {
+        setDeviceLock(false, "Device approval could not be checked.");
+      }
+    }
+
+    startDeviceLock();
 
     function icon(name) {
       const icons = {
@@ -2623,20 +2596,15 @@
       focusKeyboardShortcuts();
     });
 
-    document.getElementById("copyDeviceIdButton").addEventListener("click", async () => {
-      const id = deviceId();
-      try {
-        await navigator.clipboard.writeText(id);
-        document.getElementById("approvalMessage").textContent = "Device ID copied.";
-      } catch {
-        document.getElementById("approvalMessage").textContent = id;
-      }
-    });
-
     document.getElementById("checkApprovalButton").addEventListener("click", () => {
-      document.getElementById("approvalMessage").textContent = updateDeviceLock()
-        ? "Device approved."
-        : "Waiting for admin approval.";
+      ensureDeviceApprovalRequest()
+        .then(({ record }) => {
+          const approved = record?.status === "approved";
+          setDeviceLock(approved, approved ? "Device approved." : "Waiting for admin approval.");
+        })
+        .catch(() => {
+          setDeviceLock(false, "Device approval could not be checked.");
+        });
     });
 
     document.getElementById("settingsButton").addEventListener("click", () => {

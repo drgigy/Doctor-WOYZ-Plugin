@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email in [
+          "drgigy@gmail.com"
+        ];
+    }
+
+    function allowedDeviceCreate() {
+      return signedIn()
+        && request.resource.data.keys().hasOnly([
+          "id",
+          "ownerUid",
+          "status",
+          "label",
+          "requestedAt",
+          "userAgent"
+        ])
+        && request.resource.data.id == request.resource.id
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.status == "pending"
+        && request.resource.data.label is string
+        && request.resource.data.userAgent is string;
+    }
+
+    match /deviceApprovals/{deviceId} {
+      allow create: if allowedDeviceCreate();
+      allow get: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow list: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          "status",
+          "approvedAt",
+          "approvedBy",
+          "revokedAt",
+          "label"
+        ])
+        && request.resource.data.status in ["pending", "approved", "revoked"];
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
