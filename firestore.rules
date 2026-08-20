@@ -37,8 +37,15 @@ service cloud.firestore {
         && resource.data.status == "pending"
         && request.resource.data.status == "pending"
         && request.resource.data.ownerUid == resource.data.ownerUid
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["userName"])
-        && request.resource.data.userName is string;
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          "label",
+          "requestedAt",
+          "userAgent",
+          "userName"
+        ])
+        && (!("label" in request.resource.data) || request.resource.data.label is string)
+        && (!("userName" in request.resource.data) || request.resource.data.userName is string)
+        && (!("userAgent" in request.resource.data) || request.resource.data.userAgent is string);
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           "status",

@@ -137,7 +137,7 @@ async function createDeviceApprovalRequest(ref, id, user, userName) {
     requestedAt: serverTimestamp(),
     userAgent: navigator.userAgent
   };
-  await setDoc(ref, record);
+  await setDoc(ref, record, { merge: true });
   return { id, ownerUid: user.uid, status: "pending", label: record.label, userName };
 }
 
@@ -150,34 +150,48 @@ export async function ensureDeviceApprovalRequest(options = {}) {
   const { auth, db } = activeServices;
   const user = await anonymousUser(auth);
   const ref = doc(db, DEVICE_COLLECTION, id);
+  try {
+    const record = await createDeviceApprovalRequest(ref, id, user, userName);
+    return { mode: "remote", record };
+  } catch (writeError) {
+    let snapshotAfterWriteError;
+    try {
+      snapshotAfterWriteError = await getDoc(ref);
+    } catch (readError) {
+      if (!options.retryAfterDeviceReset && readError?.code === "permission-denied") {
+        resetDeviceId();
+        return ensureDeviceApprovalRequest({ ...options, retryAfterDeviceReset: true });
+      }
+      throw writeError;
+    }
+    if (snapshotAfterWriteError.exists()) {
+      return { mode: "remote", record: { id, ...snapshotAfterWriteError.data() } };
+    }
+    if (!options.retryAfterDeviceReset && writeError?.code === "permission-denied") {
+      resetDeviceId();
+      return ensureDeviceApprovalRequest({ ...options, retryAfterDeviceReset: true });
+    }
+    throw writeError;
+  }
+}
+
+export async function readCurrentDeviceApproval(options = {}) {
+  const id = deviceId();
+  const activeServices = await services();
+  if (!activeServices) return { mode: "local", record: localDeviceRequest() };
+
+  const { auth, db } = activeServices;
+  await anonymousUser(auth);
+  const ref = doc(db, DEVICE_COLLECTION, id);
   let snapshot;
   try {
     snapshot = await getDoc(ref);
   } catch (error) {
-    if (error?.code === "permission-denied") {
-      try {
-        const record = await createDeviceApprovalRequest(ref, id, user, userName);
-        return { mode: "remote", record };
-      } catch (createError) {
-        if (!options.retryAfterDeviceReset && createError?.code === "permission-denied") {
-          resetDeviceId();
-          return ensureDeviceApprovalRequest({ ...options, retryAfterDeviceReset: true });
-        }
-        throw createError;
-      }
-    }
+    if (error?.code === "permission-denied") return { mode: "remote", record: null };
     throw error;
   }
-  if (!snapshot.exists()) {
-    const record = await createDeviceApprovalRequest(ref, id, user, userName);
-    return { mode: "remote", record };
-  }
-  const record = { id, ...snapshot.data() };
-  if (userName && record.status !== "approved") {
-    await updateDoc(ref, { userName });
-    return { mode: "remote", record: { ...record, userName } };
-  }
-  return { mode: "remote", record };
+  if (!snapshot.exists()) return { mode: "remote", record: null };
+  return { mode: "remote", record: { id, ...snapshot.data() } };
 }
 
 export async function watchCurrentDeviceApproval(callback) {
@@ -188,7 +202,11 @@ export async function watchCurrentDeviceApproval(callback) {
     return () => {};
   }
 
-  await ensureDeviceApprovalRequest();
+  const existing = await readCurrentDeviceApproval();
+  if (!existing.record) {
+    callback({ mode: "remote", record: null });
+    return () => {};
+  }
   const ref = doc(activeServices.db, DEVICE_COLLECTION, id);
   return onSnapshot(ref, snapshot => {
     callback({ mode: "remote", record: snapshot.exists() ? { id, ...snapshot.data() } : null });

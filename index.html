@@ -1923,25 +1923,33 @@
       return "Device approval could not be checked.";
     }
 
+    let stopDeviceApprovalWatch = null;
+
+    function handleDeviceApprovalUpdate({ record, error }) {
+      if (error) {
+        setDeviceLock(false, approvalErrorMessage(error));
+        return;
+      }
+      const approved = record?.status === "approved";
+      if (approved && record?.authorizationKey) {
+        localStorage.setItem(AUTHORIZATION_KEY_STORAGE_KEY, record.authorizationKey);
+        localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
+      } else if (!approved) {
+        localStorage.removeItem(AUTHORIZATION_KEY_STORAGE_KEY);
+        localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
+      }
+      setDeviceLock(approved, approved ? "" : (record ? "Waiting for admin approval." : "Enter user name and tap Check Approval."));
+    }
+
+    async function startDeviceApprovalWatch() {
+      if (stopDeviceApprovalWatch) stopDeviceApprovalWatch();
+      stopDeviceApprovalWatch = await watchCurrentDeviceApproval(handleDeviceApprovalUpdate);
+    }
+
     async function startDeviceLock() {
       setDeviceLock(false, "Checking device approval...");
       try {
-        await ensureDeviceApprovalRequest();
-        await watchCurrentDeviceApproval(({ record, error }) => {
-          if (error) {
-            setDeviceLock(false, approvalErrorMessage(error));
-            return;
-          }
-          const approved = record?.status === "approved";
-          if (approved && record?.authorizationKey) {
-            localStorage.setItem(AUTHORIZATION_KEY_STORAGE_KEY, record.authorizationKey);
-            localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
-          } else if (!approved) {
-            localStorage.removeItem(AUTHORIZATION_KEY_STORAGE_KEY);
-            localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
-          }
-          setDeviceLock(approved, approved ? "" : "Waiting for admin approval.");
-        });
+        await startDeviceApprovalWatch();
       } catch (error) {
         setDeviceLock(false, approvalErrorMessage(error));
       }
@@ -2618,6 +2626,7 @@
         .then(({ record }) => {
           const approved = record?.status === "approved";
           setDeviceLock(approved, approved ? "Device approved." : "Waiting for admin approval.");
+          return startDeviceApprovalWatch();
         })
         .catch(error => {
           setDeviceLock(false, approvalErrorMessage(error));
