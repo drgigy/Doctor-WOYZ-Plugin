@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Doctor WOYZ device approval admin page.">
+  <title>Doctor WOYZ Admin</title>
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --card: #101011;
+      --card-soft: #171717;
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --red: #ef4f4f;
+      --red-dark: #b91c1c;
+      --white: #ffffff;
+      --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .topbar {
+      min-height: 112px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand-doctor {
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .brand-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 13px;
+      min-height: 60px;
+      padding: 8px 28px 8px 14px;
+      border: 5px solid var(--red);
+      border-radius: 999px;
+      background: #17181d;
+      color: #ffffff;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 900;
+      box-shadow: 0 16px 34px rgba(239, 79, 79, 0.18);
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 50% 50%, var(--red) 0 34%, rgba(239, 79, 79, 0.18) 35% 100%);
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 30px auto 48px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 48px);
+      line-height: 1;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button {
+      min-height: 48px;
+      border: 2px solid var(--red);
+      border-radius: 8px;
+      color: #ffffff;
+      background: var(--red);
+      padding: 10px 18px;
+      font-weight: 850;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 24px rgba(239, 79, 79, 0.18);
+    }
+
+    .button.secondary {
+      color: var(--red-dark);
+      background: #ffffff;
+      box-shadow: none;
+    }
+
+    .admin-card {
+      overflow: hidden;
+      border: 1px solid #252525;
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--white);
+      box-shadow: var(--shadow);
+    }
+
+    .admin-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px;
+      border-bottom: 1px solid #282828;
+    }
+
+    .admin-card-header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .status-pill {
+      border: 1px solid rgba(239, 79, 79, 0.7);
+      border-radius: 999px;
+      padding: 6px 12px;
+      color: #ffffff;
+      background: rgba(239, 79, 79, 0.15);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .device-list {
+      display: grid;
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .device-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid #2f2f2f;
+      border-radius: 8px;
+      background: var(--card-soft);
+    }
+
+    .device-id {
+      font: 850 18px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: 0.03em;
+      overflow-wrap: anywhere;
+    }
+
+    .device-meta {
+      margin-top: 8px;
+      color: #a1a1aa;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .small-button {
+      min-height: 42px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      color: #ffffff;
+      background: #242424;
+      padding: 8px 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .small-button.approve {
+      border-color: var(--red);
+      background: var(--red);
+    }
+
+    .small-button.warning {
+      color: #fecaca;
+      border-color: rgba(239, 79, 79, 0.55);
+      background: transparent;
+    }
+
+    .empty {
+      padding: 34px 20px;
+      color: #a1a1aa;
+      text-align: center;
+    }
+
+    .notice {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid #fee2e2;
+      border-radius: 8px;
+      color: #7f1d1d;
+      background: #fff1f2;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        min-height: 88px;
+      }
+
+      .brand-doctor,
+      .brand-title {
+        font-size: 24px;
+      }
+
+      .brand-title {
+        min-height: 50px;
+        padding-right: 20px;
+      }
+
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+      }
+
+      .hero,
+      .device-row,
+      .admin-card-header {
+        align-items: stretch;
+        grid-template-columns: 1fr;
+        flex-direction: column;
+      }
+
+      .actions,
+      .row-actions {
+        justify-content: stretch;
+      }
+
+      .button,
+      .small-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-doctor">Doctor</span>
+      <span class="brand-title"><span class="brand-mark" aria-hidden="true"></span><span>WOYZ</span></span>
+    </a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h1>Admin</h1>
+        <p>Approve or revoke devices allowed to use Doctor WOYZ on this browser.</p>
+      </div>
+      <div class="actions">
+        <a class="button secondary" href="index.html">Back to App</a>
+        <button class="button" id="approveCurrentButton" type="button">Approve This Device</button>
+      </div>
+    </section>
+
+    <section class="admin-card">
+      <div class="admin-card-header">
+        <h2>Device Lock</h2>
+        <span class="status-pill" id="deviceCount">0 devices</span>
+      </div>
+      <div class="device-list" id="deviceList"></div>
+    </section>
+
+    <p class="notice">No external database is connected. Device approvals are saved in this browser storage, so approval from a different computer will need a shared backend later.</p>
+  </main>
+
+  <script>
+    const DEVICE_ID_STORAGE_KEY = "doctor_woyz_device_id";
+    const DEVICE_REGISTRY_STORAGE_KEY = "doctor_woyz_device_registry";
+
+    function readDeviceRegistry() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(DEVICE_REGISTRY_STORAGE_KEY) || "{}");
+        return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function writeDeviceRegistry(registry) {
+      localStorage.setItem(DEVICE_REGISTRY_STORAGE_KEY, JSON.stringify(registry));
+    }
+
+    function deviceId() {
+      const saved = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
+      if (saved) return saved;
+      const bytes = new Uint8Array(6);
+      crypto.getRandomValues(bytes);
+      const id = [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("").toUpperCase().match(/.{1,4}/g).join("-");
+      localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+      return id;
+    }
+
+    function ensureCurrentDevice() {
+      const id = deviceId();
+      const registry = readDeviceRegistry();
+      if (!registry[id]) {
+        registry[id] = {
+          id,
+          status: "pending",
+          label: navigator.userAgent.includes("Android") ? "Android tablet" : "Browser device",
+          requestedAt: new Date().toISOString()
+        };
+        writeDeviceRegistry(registry);
+      }
+      return id;
+    }
+
+    function formatDate(value) {
+      if (!value) return "Not recorded";
+      try {
+        return new Intl.DateTimeFormat("en-IN", {
+          dateStyle: "medium",
+          timeStyle: "short"
+        }).format(new Date(value));
+      } catch {
+        return value;
+      }
+    }
+
+    function statusLabel(status) {
+      return status === "approved" ? "Approved" : "Pending";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function approveDevice(id) {
+      const registry = readDeviceRegistry();
+      const previous = registry[id] || { id };
+      registry[id] = {
+        ...previous,
+        id,
+        status: "approved",
+        approvedAt: new Date().toISOString()
+      };
+      writeDeviceRegistry(registry);
+      renderDevices();
+    }
+
+    function revokeDevice(id) {
+      const registry = readDeviceRegistry();
+      if (!registry[id]) return;
+      registry[id] = {
+        ...registry[id],
+        status: "pending",
+        approvedAt: ""
+      };
+      writeDeviceRegistry(registry);
+      renderDevices();
+    }
+
+    function removeDevice(id) {
+      const registry = readDeviceRegistry();
+      delete registry[id];
+      writeDeviceRegistry(registry);
+      renderDevices();
+    }
+
+    function renderDevices() {
+      const id = ensureCurrentDevice();
+      const registry = readDeviceRegistry();
+      const devices = Object.values(registry).sort((a, b) => {
+        if (a.id === id) return -1;
+        if (b.id === id) return 1;
+        return String(b.requestedAt || "").localeCompare(String(a.requestedAt || ""));
+      });
+      const list = document.getElementById("deviceList");
+      document.getElementById("deviceCount").textContent = `${devices.length} ${devices.length === 1 ? "device" : "devices"}`;
+
+      if (!devices.length) {
+        list.innerHTML = '<div class="empty">No device requests yet.</div>';
+        return;
+      }
+
+      list.innerHTML = devices.map(device => {
+        const safeId = escapeHtml(device.id);
+        const safeLabel = escapeHtml(device.label || "Device");
+        return `
+        <article class="device-row">
+          <div>
+            <div class="device-id">${safeId}</div>
+            <div class="device-meta">
+              ${device.id === id ? "This device" : safeLabel} · ${statusLabel(device.status)}<br>
+              Requested: ${escapeHtml(formatDate(device.requestedAt))}${device.approvedAt ? `<br>Approved: ${escapeHtml(formatDate(device.approvedAt))}` : ""}
+            </div>
+          </div>
+          <div class="row-actions">
+            ${device.status === "approved"
+              ? `<button class="small-button warning" data-action="revoke" data-id="${safeId}" type="button">Revoke</button>`
+              : `<button class="small-button approve" data-action="approve" data-id="${safeId}" type="button">Approve</button>`}
+            <button class="small-button" data-action="remove" data-id="${safeId}" type="button">Remove</button>
+          </div>
+        </article>
+      `;
+      }).join("");
+    }
+
+    document.getElementById("approveCurrentButton").addEventListener("click", () => {
+      approveDevice(ensureCurrentDevice());
+    });
+
+    document.getElementById("deviceList").addEventListener("click", event => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      const id = button.dataset.id;
+      if (button.dataset.action === "approve") approveDevice(id);
+      if (button.dataset.action === "revoke") revokeDevice(id);
+      if (button.dataset.action === "remove") removeDevice(id);
+    });
+
+    renderDevices();
+  </script>
+</body>
+</html>
