@@ -2096,6 +2096,25 @@
       if (view === "result") scheduleTextareaResize();
     }
 
+    function resetRecorderUi() {
+      if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") return;
+      clearInterval(state.timerId);
+      cancelAnimationFrame(state.animationId);
+      state.animationId = null;
+      state.mediaRecorder = null;
+      state.pendingBlob = null;
+      state.transcribeOnStop = false;
+      state.elapsed = 0;
+      state.maxRecordingSeconds = DEFAULT_RECORDING_SECONDS;
+      state.paused = false;
+      timer.textContent = formatTime(state.maxRecordingSeconds);
+      status.textContent = "Tap microphone to start dictation";
+      focusBox.classList.remove("recording");
+      document.getElementById("extendButton").classList.remove("visible", "alert");
+      showIdleWaveformMark();
+      setIdleControls();
+    }
+
     function updateNavigationButtons() {
       document.getElementById("newButton").classList.toggle("visible", state.currentView !== "record");
       document.getElementById("forwardButton").classList.toggle("visible", state.currentView === "record" && state.resultReady);
@@ -2113,6 +2132,7 @@
 
     function showHistoryView(view) {
       const safeView = ["record", "processing", "result"].includes(view) ? view : "record";
+      if (safeView === "record") resetRecorderUi();
       state.syncingHistory = true;
       setView(safeView);
       state.syncingHistory = false;
