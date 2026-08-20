@@ -37,6 +37,8 @@ service cloud.firestore {
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           "status",
+          "authorizationKey",
+          "authorizationKeyAssignedAt",
           "approvedAt",
           "approvedBy",
           "revokedAt",
@@ -44,6 +46,10 @@ service cloud.firestore {
         ])
         && request.resource.data.status in ["pending", "approved", "revoked"];
       allow delete: if isAdmin();
+    }
+
+    match /appConfig/authorization {
+      allow read, write: if isAdmin();
     }
 
     match /{document=**} {

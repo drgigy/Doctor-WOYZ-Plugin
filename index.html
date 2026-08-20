@@ -1819,18 +1819,6 @@
           <span>Dark Mode</span>
           <button class="switch" id="darkSwitch" type="button" aria-label="Toggle dark mode"><span></span></button>
         </div>
-        <div class="api-field">
-          <label for="authorizationKeyInput">Authorization Key</label>
-          <div class="key-control">
-            <input id="authorizationKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your authorization key">
-            <button class="key-visibility" id="keyVisibilityButton" type="button" aria-label="Show authorization key">Show</button>
-          </div>
-          <div class="settings-actions">
-            <button class="save-key" id="saveApiKeyButton" type="button">Save Key</button>
-            <button class="remove-key" id="removeApiKeyButton" type="button">Remove Key</button>
-          </div>
-          <p class="key-status" id="apiKeyStatus">Saved only on this device and used only for secure processing.</p>
-        </div>
         <div class="credentials-field">
           <p class="settings-title">Print Header</p>
           <div id="printHeaderEditor" class="print-header-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Header text for printed notes&#10;Clinic name / doctor details / contact"></div>
@@ -1924,6 +1912,13 @@
             return;
           }
           const approved = record?.status === "approved";
+          if (approved && record?.authorizationKey) {
+            localStorage.setItem(AUTHORIZATION_KEY_STORAGE_KEY, record.authorizationKey);
+            localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
+          } else if (!approved) {
+            localStorage.removeItem(AUTHORIZATION_KEY_STORAGE_KEY);
+            localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
+          }
           setDeviceLock(approved, approved ? "" : "Waiting for admin approval.");
         });
       } catch (error) {
@@ -2337,8 +2332,7 @@
     async function processWithSecureService(blob) {
       const authorizationKey = savedAuthorizationKey();
       if (!authorizationKey) {
-        document.getElementById("settings").classList.add("open");
-        throw new Error("Add and save your authorization key in Settings first.");
+        throw new Error("Authorization key is not assigned to this device. Ask admin to approve this device again.");
       }
       const audioBase64 = await blobToBase64(blob);
       const mimeType = blob.type || "audio/webm";
@@ -2609,32 +2603,6 @@
 
     document.getElementById("settingsButton").addEventListener("click", () => {
       document.getElementById("settings").classList.toggle("open");
-    });
-
-    const apiKeyInput = document.getElementById("authorizationKeyInput");
-    const apiKeyStatus = document.getElementById("apiKeyStatus");
-    apiKeyInput.value = savedAuthorizationKey();
-    document.getElementById("saveApiKeyButton").addEventListener("click", () => {
-      const value = apiKeyInput.value.trim();
-      if (!value) {
-        apiKeyStatus.textContent = "Paste an authorization key before saving.";
-        return;
-      }
-      localStorage.setItem(AUTHORIZATION_KEY_STORAGE_KEY, value);
-      localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
-      apiKeyStatus.textContent = "Authorization key saved on this device.";
-    });
-    document.getElementById("removeApiKeyButton").addEventListener("click", () => {
-      localStorage.removeItem(AUTHORIZATION_KEY_STORAGE_KEY);
-      localStorage.removeItem(LEGACY_AUTHORIZATION_KEY_STORAGE_KEY);
-      apiKeyInput.value = "";
-      apiKeyStatus.textContent = "Authorization key removed from this device.";
-    });
-    document.getElementById("keyVisibilityButton").addEventListener("click", event => {
-      const showing = apiKeyInput.type === "text";
-      apiKeyInput.type = showing ? "password" : "text";
-      event.currentTarget.textContent = showing ? "Show" : "Hide";
-      event.currentTarget.setAttribute("aria-label", showing ? "Show authorization key" : "Hide authorization key");
     });
 
     document.getElementById("darkSwitch").addEventListener("click", event => {

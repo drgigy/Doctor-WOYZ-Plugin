@@ -25,7 +25,10 @@ import { firebaseConfig } from "./firebase-config.js";
 
 const DEVICE_ID_STORAGE_KEY = "doctor_woyz_device_id";
 const LOCAL_REGISTRY_STORAGE_KEY = "doctor_woyz_device_registry";
+const LOCAL_AUTHORIZATION_KEY_STORAGE_KEY = "doctor_woyz_admin_authorization_key";
 const DEVICE_COLLECTION = "deviceApprovals";
+const CONFIG_COLLECTION = "appConfig";
+const AUTHORIZATION_CONFIG_DOC = "authorization";
 
 let servicesPromise = null;
 
@@ -178,17 +181,50 @@ export async function watchAdminDevices(callback) {
   });
 }
 
+async function authorizationKeyForApproval(activeServices) {
+  if (!activeServices) {
+    return localStorage.getItem(LOCAL_AUTHORIZATION_KEY_STORAGE_KEY) || "";
+  }
+  const snapshot = await getDoc(doc(activeServices.db, CONFIG_COLLECTION, AUTHORIZATION_CONFIG_DOC));
+  return snapshot.exists() ? (snapshot.data().authorizationKey || "") : "";
+}
+
+export async function saveAuthorizationKey(value) {
+  const authorizationKey = value.trim();
+  if (!authorizationKey) throw new Error("Authorization key is required.");
+  const activeServices = await services();
+  if (!activeServices) {
+    localStorage.setItem(LOCAL_AUTHORIZATION_KEY_STORAGE_KEY, authorizationKey);
+    return;
+  }
+  await setDoc(doc(activeServices.db, CONFIG_COLLECTION, AUTHORIZATION_CONFIG_DOC), {
+    authorizationKey,
+    updatedAt: serverTimestamp(),
+    updatedBy: activeServices.auth.currentUser?.email || "admin"
+  }, { merge: true });
+}
+
 export async function approveDevice(id) {
   const activeServices = await services();
+  const authorizationKey = await authorizationKeyForApproval(activeServices);
+  if (!authorizationKey) throw new Error("Save the authorization key before approving devices.");
   if (!activeServices) {
     const registry = localRegistry();
     const previous = registry[id] || { id, requestedAt: new Date().toISOString() };
-    registry[id] = { ...previous, id, status: "approved", approvedAt: new Date().toISOString() };
+    registry[id] = {
+      ...previous,
+      id,
+      status: "approved",
+      approvedAt: new Date().toISOString(),
+      authorizationKey
+    };
     writeLocalRegistry(registry);
     return;
   }
   await updateDoc(doc(activeServices.db, DEVICE_COLLECTION, id), {
     status: "approved",
+    authorizationKey,
+    authorizationKeyAssignedAt: serverTimestamp(),
     approvedAt: serverTimestamp(),
     approvedBy: activeServices.auth.currentUser?.email || "admin"
   });
@@ -199,13 +235,14 @@ export async function revokeDevice(id) {
   if (!activeServices) {
     const registry = localRegistry();
     if (registry[id]) {
-      registry[id] = { ...registry[id], status: "pending", approvedAt: "" };
+      registry[id] = { ...registry[id], status: "pending", approvedAt: "", authorizationKey: "" };
       writeLocalRegistry(registry);
     }
     return;
   }
   await updateDoc(doc(activeServices.db, DEVICE_COLLECTION, id), {
     status: "pending",
+    authorizationKey: "",
     approvedAt: null,
     revokedAt: serverTimestamp()
   });

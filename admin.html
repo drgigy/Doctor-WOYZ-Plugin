@@ -160,6 +160,10 @@
       box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
     }
 
+    .key-panel {
+      grid-template-columns: minmax(240px, 1fr) auto;
+    }
+
     .login-field label {
       display: block;
       margin-bottom: 6px;
@@ -370,6 +374,14 @@
     </section>
     <p class="admin-message" id="adminMessage"></p>
 
+    <section class="login-panel key-panel" id="authorizationPanel">
+      <div class="login-field">
+        <label for="adminAuthorizationKey">Authorization Key</label>
+        <input id="adminAuthorizationKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste key to send to approved devices">
+      </div>
+      <button class="button" id="saveAuthorizationKeyButton" type="button">Save Key</button>
+    </section>
+
     <section class="admin-card">
       <div class="admin-card-header">
         <h2>Device Lock</h2>
@@ -390,6 +402,7 @@
       ensureDeviceApprovalRequest,
       removeDevice,
       revokeDevice,
+      saveAuthorizationKey,
       watchAdminDevices
     } from "./device-approval.js";
 
@@ -501,6 +514,17 @@
       devices = [];
       renderDevices();
       setAdminMessage("Signed out.");
+    });
+
+    document.getElementById("saveAuthorizationKeyButton").addEventListener("click", async () => {
+      const input = document.getElementById("adminAuthorizationKey");
+      try {
+        await saveAuthorizationKey(input.value);
+        input.value = "";
+        setAdminMessage("Authorization key saved. New approvals will receive it.");
+      } catch (error) {
+        setAdminMessage("Authorization key could not be saved.");
+      }
     });
 
     document.getElementById("deviceList").addEventListener("click", async event => {
