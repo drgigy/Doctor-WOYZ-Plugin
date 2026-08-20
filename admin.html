@@ -289,6 +289,68 @@
       text-align: center;
     }
 
+    .lead-card {
+      margin-top: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .lead-card .admin-card-header {
+      border-bottom-color: var(--line);
+      color: var(--text);
+      background: #ffffff;
+    }
+
+    .lead-card .status-pill {
+      color: var(--red-dark);
+      background: #fff1f2;
+    }
+
+    .lead-table-wrap {
+      overflow-x: auto;
+    }
+
+    .lead-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      font-size: 14px;
+    }
+
+    .lead-table th,
+    .lead-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .lead-table th {
+      color: var(--muted);
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .lead-table td {
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .lead-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .lead-muted {
+      color: var(--muted);
+      font-weight: 650;
+    }
+
     .notice {
       margin-top: 16px;
       padding: 14px 16px;
@@ -342,6 +404,10 @@
       .small-button {
         width: 100%;
       }
+
+      .lead-table {
+        min-width: 640px;
+      }
     }
   </style>
 </head>
@@ -394,6 +460,14 @@
       <div class="device-list" id="deviceList"></div>
     </section>
 
+    <section class="lead-card hidden" data-auth-only>
+      <div class="admin-card-header">
+        <h2>Request Leads</h2>
+        <span class="status-pill" id="leadCount">0 leads</span>
+      </div>
+      <div class="lead-table-wrap" id="leadList"></div>
+    </section>
+
     <p class="notice hidden" data-auth-only>Use the admin account listed in the security rules. Devices can request access automatically; only admin can approve or revoke access.</p>
   </main>
 
@@ -409,7 +483,7 @@
       saveAuthorizationKey,
       watchAdminDevices,
       watchAdminSession
-    } from "./device-approval.js";
+    } from "./device-approval.js?v=20260820-1645";
 
     let devices = [];
     let unsubscribeDevices = null;
@@ -449,6 +523,12 @@
       const saved = await authorizationKeySaved();
       document.getElementById("authorizationPanel").classList.toggle("hidden", saved || !signedIn);
       return saved;
+    }
+
+    function sortedLeadRows() {
+      return [...devices].sort((a, b) => {
+        return String(b.requestedAt || "").localeCompare(String(a.requestedAt || ""));
+      });
     }
 
     function renderDevices() {
@@ -494,6 +574,43 @@
       }).join("");
     }
 
+    function renderLeads() {
+      if (!signedIn) return;
+      const rows = sortedLeadRows();
+      const list = document.getElementById("leadList");
+      document.getElementById("leadCount").textContent = `${rows.length} ${rows.length === 1 ? "lead" : "leads"}`;
+
+      if (!rows.length) {
+        list.innerHTML = '<div class="empty lead-muted">No approval requests yet.</div>';
+        return;
+      }
+
+      list.innerHTML = `
+        <table class="lead-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Requested</th>
+              <th>Mobile</th>
+              <th>Email</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(device => `
+              <tr>
+                <td>${escapeHtml(device.userName || "Name not entered")}</td>
+                <td>${escapeHtml(formatDate(device.requestedAt))}</td>
+                <td>${escapeHtml(device.mobileNumber || "-")}</td>
+                <td>${escapeHtml(device.email || "-")}</td>
+                <td>${escapeHtml(statusLabel(device.status))}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
     function stopDeviceList() {
       if (unsubscribeDevices) {
         unsubscribeDevices();
@@ -502,6 +619,8 @@
       devices = [];
       document.getElementById("deviceList").innerHTML = "";
       document.getElementById("deviceCount").textContent = "0 devices";
+      document.getElementById("leadList").innerHTML = "";
+      document.getElementById("leadCount").textContent = "0 leads";
     }
 
     function setSignedIn(user) {
@@ -529,11 +648,13 @@
           setAdminMessage("Sign in with an approved admin account to view devices.");
           devices = [];
           renderDevices();
+          renderLeads();
           return;
         }
         devices = nextDevices || [];
         setAdminMessage("");
         renderDevices();
+        renderLeads();
       });
     }
 
