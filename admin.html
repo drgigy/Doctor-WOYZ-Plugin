@@ -402,6 +402,7 @@
       adminSignIn,
       adminSignOut,
       approveDevice,
+      authorizationKeySaved,
       deviceId,
       removeDevice,
       revokeDevice,
@@ -442,6 +443,12 @@
 
     function setAdminMessage(message) {
       document.getElementById("adminMessage").textContent = message;
+    }
+
+    async function refreshAuthorizationPanel() {
+      const saved = await authorizationKeySaved();
+      document.getElementById("authorizationPanel").classList.toggle("hidden", saved || !signedIn);
+      return saved;
     }
 
     function renderDevices() {
@@ -503,6 +510,7 @@
       });
       if (signedIn) {
         setAdminMessage(`Signed in as ${user.email}.`);
+        refreshAuthorizationPanel().catch(() => {});
         startDeviceList().catch(() => {
           setAdminMessage("Device list could not be loaded.");
         });
@@ -550,6 +558,7 @@
       try {
         await saveAuthorizationKey(input.value);
         input.value = "";
+        document.getElementById("authorizationPanel").classList.add("hidden");
         setAdminMessage("Authorization key saved. New approvals will receive it.");
       } catch (error) {
         setAdminMessage("Authorization key could not be saved.");

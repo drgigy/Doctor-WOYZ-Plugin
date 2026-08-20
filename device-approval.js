@@ -231,6 +231,15 @@ export async function saveAuthorizationKey(value) {
   }, { merge: true });
 }
 
+export async function authorizationKeySaved() {
+  const activeServices = await services();
+  if (!activeServices) {
+    return Boolean(localStorage.getItem(LOCAL_AUTHORIZATION_KEY_STORAGE_KEY));
+  }
+  const snapshot = await getDoc(doc(activeServices.db, CONFIG_COLLECTION, AUTHORIZATION_CONFIG_DOC));
+  return snapshot.exists() && Boolean(snapshot.data().authorizationKey);
+}
+
 export async function approveDevice(id) {
   const activeServices = await services();
   const authorizationKey = await authorizationKeyForApproval(activeServices);

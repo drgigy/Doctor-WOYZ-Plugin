@@ -13,7 +13,7 @@ service cloud.firestore {
         ];
     }
 
-    function allowedDeviceCreate() {
+    function allowedDeviceCreate(deviceId) {
       return signedIn()
         && request.resource.data.keys().hasOnly([
           "id",
@@ -24,7 +24,7 @@ service cloud.firestore {
           "requestedAt",
           "userAgent"
         ])
-        && request.resource.data.id == request.resource.id
+        && request.resource.data.id == deviceId
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.status == "pending"
         && request.resource.data.label is string
@@ -33,7 +33,7 @@ service cloud.firestore {
     }
 
     match /deviceApprovals/{deviceId} {
-      allow create: if allowedDeviceCreate();
+      allow create: if allowedDeviceCreate(deviceId);
       allow get: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
       allow list: if isAdmin();
       allow update: if signedIn()
