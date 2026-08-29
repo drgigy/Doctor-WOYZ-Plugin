@@ -274,8 +274,17 @@
     }
 
     .forward-button {
-      background: #17181d;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+      border: 2px solid var(--blue);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--blue-dark);
+      padding: 9px 16px;
+      box-shadow: 0 8px 22px rgba(239, 79, 79, 0.14);
+    }
+
+    .forward-button svg {
+      width: 16px;
+      height: 16px;
     }
 
     main {
@@ -1422,6 +1431,10 @@
         padding: 9px 10px;
       }
 
+      .forward-button {
+        padding: 8px 12px;
+      }
+
       main {
         padding: 9px 8px calc(74px + env(safe-area-inset-bottom));
       }
@@ -1703,6 +1716,8 @@
       .approval-card { padding: 22px 18px; }
       .brand-title { font-size: 18px; }
       .new-button { font-size: 0; padding: 10px; }
+      .forward-button { gap: 6px; padding: 9px 11px; }
+      #forwardButtonLabel { font-size: 13px; }
       .new-button svg { width: 19px; height: 19px; }
       .card { padding: 16px 12px; }
       .section textarea { font-size: 16px; }
@@ -3162,6 +3177,43 @@
       return details.length ? details.join(" | ") : "NIL";
     }
 
+    function visitPatientMetaItems() {
+      return [
+        ["Name", document.getElementById("patientName").value.trim()],
+        ["Age", document.getElementById("patientAge").value.trim()],
+        ["Sex", document.getElementById("patientSex").value.trim()],
+        ["UHID", document.getElementById("patientUhid").value.trim()]
+      ].filter(([, value]) => value && value.toUpperCase() !== "NIL");
+    }
+
+    function visitNotePrintHtml(title, sections) {
+      const metaItems = visitPatientMetaItems();
+      const metaHtml = metaItems.length
+        ? `
+          <div class="visit-meta-strip">
+            ${metaItems.map(([label, value]) => `
+              <div class="visit-meta-item">
+                <span>${escapeHtml(label)}</span>
+                <strong>${formatHtmlText(value)}</strong>
+              </div>
+            `).join("")}
+          </div>
+        `
+        : "";
+      return `
+        <h1 class="visit-note-title">${escapeHtml(title)}</h1>
+        ${metaHtml}
+        <div class="visit-note-sections">
+          ${sections.map(([heading, value]) => `
+            <section>
+              <h2>${escapeHtml(heading)}</h2>
+              <div class="content">${formatHtmlText(value)}</div>
+            </section>
+          `).join("")}
+        </div>
+      `;
+    }
+
     function splitPrescriptionForTemplate(text) {
       const normalized = numberPrescriptionText(text);
       if (!normalized || normalized.toUpperCase() === "NIL") return { medicines: [], instructions: ["NIL"] };
@@ -3272,7 +3324,7 @@
       `;
     }
 
-    function printDocument({ title, sections, prescription = false, certificate = false, replyLetter = false }) {
+    function printDocument({ title, sections, prescription = false, certificate = false, replyLetter = false, visitNote = false }) {
       const body = certificate
         ? `
           <div class="certificate-page">
@@ -3288,6 +3340,8 @@
         ? prescriptionPrintHtml()
         : replyLetter
         ? replyLetterPrintHtml(document.getElementById("dictationText").value.trim())
+        : visitNote
+        ? visitNotePrintHtml(title, sections)
         : sections.map(([heading, value]) => `
           <section>
             <h2>${escapeHtml(heading)}</h2>
@@ -3297,7 +3351,7 @@
       const credentialsHtml = formatCredentialsHtml(getDoctorCredentials());
       const credentialsBlock = credentialsHtml ? `<div class="print-credentials ${replyLetter ? "reply-credentials" : ""}">${credentialsHtml}</div>` : "";
       const headerSettings = getPrintHeaderSettings();
-      const printableContent = `${prescription || certificate || replyLetter ? body : `<h1>${escapeHtml(title)}</h1>${body}`}${credentialsBlock}`;
+      const printableContent = `${prescription || certificate || replyLetter || visitNote ? body : `<h1>${escapeHtml(title)}</h1>${body}`}${credentialsBlock}`;
       const printableBody = `
         <div class="print-template">
           <div class="template-header">${formatPrintHeaderHtml(headerSettings)}</div>
@@ -3327,6 +3381,12 @@
             #printPreview h2 { margin: 22px 0 12px; color: #004270; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
             #printPreview section { break-inside: avoid; margin-bottom: 12px; }
             #printPreview .content { white-space: normal; font-size: 15px; }
+            #printPreview .visit-note-title { margin-bottom: 14px; font-size: 24px; }
+            #printPreview .visit-meta-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #f8fafc; }
+            #printPreview .visit-meta-item { min-width: 0; display: flex; gap: 6px; align-items: baseline; font-size: 13px; color: #111827; }
+            #printPreview .visit-meta-item span { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+            #printPreview .visit-meta-item strong { overflow-wrap: anywhere; font-weight: 800; }
+            #printPreview .visit-note-sections h2:first-child { margin-top: 12px; }
             #printPreview .patient-name { margin: 0 0 8px; color: #000000; font-size: 22px; font-weight: 900; text-transform: uppercase; }
             #printPreview .patient-meta { margin-bottom: 24px; color: #000000; font-size: 13px; }
             #printPreview .rx-list,
@@ -3351,6 +3411,11 @@
             #printPreview .certificate-title { text-align: center; color: #111827; text-transform: uppercase; text-decoration: underline; letter-spacing: .04em; margin-bottom: 36px; font-size: 22px; }
             #printPreview .certificate-body { white-space: normal; font-size: 16px; line-height: 1.8; text-align: justify; margin-top: 12px; }
             #printPreview .certificate-thanks { margin-top: 42px; font-size: 15px; }
+            @media (max-width: 720px) {
+              #printPreview .print-toolbar { padding: 12px 14px; }
+              #printPreview .template-content { padding: 18px 18px 0; }
+              #printPreview .visit-meta-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            }
             @media print {
               body > *:not(#printPreview) { display: none !important; }
               #printPreview { display: block !important; position: static !important; overflow: visible !important; }
@@ -3359,6 +3424,7 @@
               #printPreview .print-template { min-height: 100vh; }
               #printPreview .template-header { padding: 10mm 12mm; min-height: 34mm; }
               #printPreview .template-content { padding: 8mm 12mm 0; }
+              #printPreview .visit-meta-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
             }
           </style>
           <div class="print-toolbar">
@@ -3388,10 +3454,13 @@
     }
 
     function printVisitNote() {
-      const sections = activeVisitFields()
+      const fields = activeVisitFields();
+      const patientIds = new Set(["patientName", "patientAge", "patientSex", "patientUhid"]);
+      const sections = fields
+        .filter(([, id]) => !patientIds.has(id))
         .map(([title, id]) => [title, document.getElementById(id).value.trim()])
         .filter(([, value]) => value && value.toUpperCase() !== "NIL");
-      printDocument({ title: state.resultMode === "visitDictation" ? "Visit Note" : "Ambient Visit Note", sections });
+      printDocument({ title: state.resultMode === "visitDictation" ? "Visit Note" : "Ambient Visit Note", sections, visitNote: true });
     }
 
     function textResultTitle() {
