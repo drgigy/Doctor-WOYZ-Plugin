@@ -1023,7 +1023,7 @@
     }
 
     .result {
-      width: min(100%, 1040px);
+      width: min(100%, 1180px);
       display: none;
     }
 
@@ -1032,11 +1032,18 @@
     }
 
     .result-header {
+      position: sticky;
+      top: 112px;
+      z-index: 8;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 22px;
+      margin: -12px 0 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(209, 213, 219, 0.85);
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
     }
 
     .result-title {
@@ -1093,8 +1100,13 @@
 
     .result-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .prescription-result .result-grid,
+    .certificate-result .result-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
     }
 
     .dictation-result {
@@ -1134,6 +1146,17 @@
       grid-column: 1 / -1;
     }
 
+    #visitNoteResult .section:not(.patient-detail):not(.full) {
+      grid-column: span 2;
+    }
+
+    .patient-detail {
+      min-height: 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      box-shadow: none;
+    }
+
     .section.diagnosis {
       border-color: #fecdd3;
       background: #fff1f2;
@@ -1150,6 +1173,13 @@
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.06em;
+    }
+
+    .patient-detail h3 {
+      margin: 0 0 5px;
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.08em;
     }
 
     .section.diagnosis h3 {
@@ -1175,6 +1205,14 @@
       font-size: 15px;
       line-height: 1.6;
       outline: none;
+    }
+
+    .patient-detail textarea {
+      min-height: 22px;
+      padding: 0;
+      font-size: 14px;
+      font-weight: 750;
+      line-height: 1.35;
     }
 
     .section textarea:focus {
@@ -1253,6 +1291,10 @@
 
       main {
         padding: 10px 42px 12px;
+      }
+
+      .result-header {
+        top: 86px;
       }
 
       .intro {
@@ -1382,6 +1424,10 @@
 
       main {
         padding: 9px 8px calc(74px + env(safe-area-inset-bottom));
+      }
+
+      .result {
+        width: 100%;
       }
 
       #recordView {
@@ -1540,8 +1586,12 @@
       }
 
       .result-header {
+        top: 54px;
         align-items: stretch;
         flex-direction: column;
+        gap: 10px;
+        margin: -9px 0 12px;
+        padding: 10px 0 12px;
       }
 
       .result-title-icon {
@@ -1557,21 +1607,41 @@
         position: static !important;
         max-width: none !important;
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
       }
 
       .copy-button {
         width: 100%;
+        min-height: 44px;
+        padding: 9px 10px;
       }
 
       .result-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .prescription-result .result-grid,
+      .certificate-result .result-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #visitNoteResult .section:not(.patient-detail):not(.full) {
+        grid-column: 1 / -1;
       }
 
       .section {
         padding: 14px;
         border-radius: 8px;
+      }
+
+      .patient-detail {
+        padding: 9px 10px;
+      }
+
+      .patient-detail textarea {
+        font-size: 14px;
       }
 
       .settings {
@@ -1636,6 +1706,7 @@
       .new-button svg { width: 19px; height: 19px; }
       .card { padding: 16px 12px; }
       .section textarea { font-size: 16px; }
+      .patient-detail textarea { font-size: 14px; }
     }
   </style>
 </head>
@@ -1685,7 +1756,7 @@
             Back
           </button>
           <button class="new-button forward-button" id="forwardButton" type="button">
-            Forward
+            <span id="forwardButtonLabel">View Note</span>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
           </button>
         </div>
@@ -2115,8 +2186,16 @@
       setIdleControls();
     }
 
+    function forwardButtonLabel() {
+      if (state.resultMode === "prescription") return "View Prescription";
+      if (state.resultMode === "replyLetter") return "View Letter";
+      if (state.resultMode === "medicalCertificate") return "View Certificate";
+      return "View Note";
+    }
+
     function updateNavigationButtons() {
       document.getElementById("newButton").classList.toggle("visible", state.currentView !== "record");
+      document.getElementById("forwardButtonLabel").textContent = forwardButtonLabel();
       document.getElementById("forwardButton").classList.toggle("visible", state.currentView === "record" && state.resultReady);
     }
 
@@ -2451,8 +2530,9 @@
 
     function resizeTextarea(textarea) {
       if (!textarea.offsetParent) return;
+      const minHeight = textarea.closest(".patient-detail") ? 22 : 56;
       textarea.style.height = "1px";
-      textarea.style.height = `${Math.max(56, textarea.scrollHeight + 2)}px`;
+      textarea.style.height = `${Math.max(minHeight, textarea.scrollHeight + 2)}px`;
       textarea.style.overflowY = "hidden";
     }
 
