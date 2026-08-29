@@ -2638,7 +2638,7 @@
 
     function showVisitNoteResult(report, mode = "ambient") {
       state.resultMode = mode;
-      document.getElementById("resultHeading").textContent = mode === "visitDictation" ? "Visit Note" : "Ambient Visit Note";
+      document.getElementById("resultHeading").textContent = "Visit Note";
       document.getElementById("visitNoteActions").style.display = "";
       document.getElementById("dictationActions").style.display = "none";
       document.getElementById("prescriptionActions").style.display = "none";
@@ -3460,7 +3460,7 @@
         .filter(([, id]) => !patientIds.has(id))
         .map(([title, id]) => [title, document.getElementById(id).value.trim()])
         .filter(([, value]) => value && value.toUpperCase() !== "NIL");
-      printDocument({ title: state.resultMode === "visitDictation" ? "Visit Note" : "Ambient Visit Note", sections, visitNote: true });
+      printDocument({ title: "Visit Note", sections, visitNote: true });
     }
 
     function textResultTitle() {
