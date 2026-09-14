@@ -23,7 +23,7 @@ const REPORT_FIELD_DESCRIPTIONS = {
   patientSex: "Patient sex or gender exactly as spoken, otherwise NIL.",
   patientUhid: "UHID exactly as spoken, otherwise NIL.",
   presentingComplaint: "Concise reason for today's encounter after cross-referencing the complete conversation: the main current complaints, referral reason, second-opinion request, review purpose, and any explicitly dictated investigation finding that the conversation clearly establishes as the reason for consultation. Preserve onset, duration, or reported interval change when spoken. Do not create a complaint from an isolated report or medicine. Use NIL when unsupported.",
-  historyOfPresentIllness: "Clinically coherent, problem-oriented synthesis of the explicitly supported clinical course behind today's encounter. Include relevant onset, progression, associated symptoms, pertinent negatives, investigations, procedures, treatment, and response when spoken. Exclude unrelated remarks and symptoms unless the conversation clearly connects them. Never invent clinical relevance or causal links. Use NIL when unsupported.",
+  historyOfPresentIllness: "Clinically coherent, problem-oriented synthesis of the explicitly supported clinical course behind today's encounter. Include all clearly spoken relevant details about onset, duration, progression, severity, distribution, triggers, functional impact, associated symptoms, pertinent negatives, prior consultations, investigations, procedures, treatment tried, response, recurrence, and reason for review. Do not omit details merely because a short summary is already present in presentingComplaint or provisionalDiagnosis. Exclude only clearly unrelated remarks. Never invent clinical relevance or causal links. Use NIL only when no illness narrative or symptom course is spoken.",
   pastMedicalHistory: "Established previous or chronic medical conditions, surgeries, admissions, or major past illnesses explicitly stated or clearly expressed in colloquial language anywhere in the conversation. Normalize colloquial condition names into standard clinical English only when context clearly indicates an established history. Do not infer diagnoses from symptoms, medicines, family history, or laboratory values. Use NIL when unsupported.",
   allergies: "Allergies explicitly spoken in the audio, otherwise NIL.",
   familyHistory: "Family history explicitly spoken in the audio, otherwise NIL.",
@@ -173,6 +173,11 @@ Rules:
 - Transliterate patient names, medicine names, and place names into English.
 - Preserve onset, duration, chronology, examination findings, investigation
   details, diagnosis, and advice exactly as spoken.
+- Do not over-summarize the History of Present Illness. If the patient or
+  doctor gives a symptom story, duration, progression, associated symptoms,
+  effect on activities, previous treatment, investigation context, or response
+  to medicines, include those details in historyOfPresentIllness even if the
+  same problem is summarized in presentingComplaint or provisionalDiagnosis.
 - Translate clearly dictated colloquial disease names into standard medical
   terms when they refer to established conditions: "sugar" or "sugar disease"
   means Diabetes mellitus; "pressure", "BP", or "blood pressure problem" means
@@ -194,7 +199,9 @@ Rules:
 
 Formatting rules:
 - presentingComplaint: each complaint on a separate line.
-- historyOfPresentIllness: one or two concise paragraphs.
+- historyOfPresentIllness: a clinically useful narrative with all clearly
+  spoken relevant details. Use one or more concise paragraphs or line breaks if
+  needed; do not make it NIL when a symptom course or clinical story is spoken.
 - pastMedicalHistory: one item per line.
 - allergies: one item per line.
 - familyHistory: one item per line.
@@ -368,7 +375,11 @@ Formatting rules:
   "Orders:CT BrainPrescription:Medications"; write Orders, Prescription, and
   Medications on separate lines.
 - Chief Complaints: each complaint on a separate line.
-- History of Present Illness: one or two concise paragraphs.
+- History of Present Illness: include all clearly spoken relevant details about
+  onset, duration, progression, severity, associated symptoms, functional
+  impact, prior consultations, investigations, treatment tried, response, and
+  reason for review. Do not over-summarize. Do not make it NIL when a symptom
+  course or clinical story is spoken.
 - Past Medical or Surgical History: line by line.
 - Allergies: line by line.
 - Examination Findings: bullet points or separate lines.
