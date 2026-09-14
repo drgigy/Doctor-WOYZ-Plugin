@@ -3157,7 +3157,7 @@
           return;
         }
         const hasMalayalam = /[\u0D00-\u0D7F]/.test(line);
-        const isMedicine = /^(tablet|cap|capsule|syrup|inj|injection|cream|ointment|drops?)\b/i.test(line);
+        const isMedicine = /^(tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syp|syrup|inj|injection|cream|ointment|drops?)\b/i.test(line);
         if (!inAdvice && hasMalayalam) {
           output.push(line);
           return;
