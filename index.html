@@ -195,6 +195,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 22px;
       position: relative;
     }
 
@@ -247,7 +248,8 @@
 
     .nav-buttons {
       position: absolute;
-      left: 20px;
+      left: auto;
+      right: calc(50% + 230px);
       top: 50%;
       transform: translateY(-50%);
       display: flex;
@@ -1843,9 +1845,11 @@
             </div>
           </div>
           <div class="result-actions" id="visitNoteActions">
+            <button class="copy-button" id="previewVisitButton" type="button">Preview</button>
             <button class="copy-button" id="copyWithoutNilButton" type="button">Copy without NIL</button>
             <button class="copy-button" id="copyButton" type="button">Copy All</button>
             <button class="copy-button" id="printVisitButton" type="button">Print</button>
+            <button class="copy-button" id="emailVisitButton" type="button">Email</button>
           </div>
           <div class="result-actions" id="dictationActions" style="display:none;">
             <button class="copy-button" id="copyDictationButton" type="button">Copy Dictation</button>
@@ -3566,6 +3570,23 @@
 
     document.getElementById("copyWithoutNilButton").addEventListener("click", event => {
       copyCaseSheet({ omitNil: true, button: event.currentTarget, idleLabel: "Copy without NIL" });
+    });
+
+    function showPendingAction(button, idleLabel) {
+      button.textContent = "Ready soon";
+      button.disabled = true;
+      setTimeout(() => {
+        button.textContent = idleLabel;
+        button.disabled = false;
+      }, 1400);
+    }
+
+    document.getElementById("previewVisitButton").addEventListener("click", event => {
+      showPendingAction(event.currentTarget, "Preview");
+    });
+
+    document.getElementById("emailVisitButton").addEventListener("click", event => {
+      showPendingAction(event.currentTarget, "Email");
     });
 
     document.getElementById("copyDictationButton").addEventListener("click", async event => {
