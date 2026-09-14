@@ -3940,13 +3940,77 @@
       };
     }
 
+    function dictationEmailPayload(to) {
+      const title = textResultTitle();
+      return {
+        to,
+        deviceId: deviceId(),
+        title,
+        patient: {},
+        sections: [{ title, value: document.getElementById("dictationText").value.trim() }],
+        doctorCredentials: getDoctorCredentials(),
+        printHeaderHtml: getPrintHeaderSettings().html,
+        generatedAt: new Date().toISOString()
+      };
+    }
+
+    function prescriptionEmailPayload(to) {
+      const medicationBox = document.getElementById("prescriptionMedications");
+      medicationBox.value = numberPrescriptionText(medicationBox.value);
+      return {
+        to,
+        deviceId: deviceId(),
+        title: "Prescription",
+        patient: {
+          date: document.getElementById("prescriptionDate").value.trim(),
+          name: document.getElementById("prescriptionName").value.trim(),
+          age: document.getElementById("prescriptionAge").value.trim(),
+          sex: document.getElementById("prescriptionSex").value.trim(),
+          uhid: document.getElementById("prescriptionUhid").value.trim()
+        },
+        sections: [{ title: "Rx / Advice", value: medicationBox.value.trim() }],
+        doctorCredentials: getDoctorCredentials(),
+        printHeaderHtml: getPrintHeaderSettings().html,
+        footnote: getPrescriptionFootnote(),
+        generatedAt: new Date().toISOString()
+      };
+    }
+
+    function certificateEmailPayload(to) {
+      return {
+        to,
+        deviceId: deviceId(),
+        title: "Medical Certificate",
+        patient: { date: document.getElementById("certificateDate").value.trim() },
+        sections: [{ title: "Medical Certificate", value: certificateBodyText() }],
+        doctorCredentials: getDoctorCredentials(),
+        printHeaderHtml: getPrintHeaderSettings().html,
+        generatedAt: new Date().toISOString()
+      };
+    }
+
+    function currentEmailPayload(to) {
+      if (state.resultMode === "prescription") return prescriptionEmailPayload(to);
+      if (state.resultMode === "medicalCertificate") return certificateEmailPayload(to);
+      if (["reviewDictation", "visitPrescription", "replyLetter"].includes(state.resultMode)) return dictationEmailPayload(to);
+      return visitNoteEmailPayload(to);
+    }
+
+    function updateEmailSendButton() {
+      const input = document.getElementById("emailRecipientInput");
+      const sendButton = document.getElementById("sendEmailButton");
+      sendButton.disabled = !validEmailAddress(input.value);
+    }
+
     function openEmailDialog() {
       const dialog = document.getElementById("emailDialog");
       const input = document.getElementById("emailRecipientInput");
+      const sendButton = document.getElementById("sendEmailButton");
       const status = document.getElementById("emailDialogStatus");
       status.textContent = "";
       status.className = "email-dialog-status";
       input.value = "";
+      sendButton.disabled = true;
       dialog.hidden = false;
       setTimeout(() => input.focus(), 50);
     }
@@ -3978,7 +4042,7 @@
         const idToken = await currentDeviceIdToken();
         await sendVisitNoteEmail({
           idToken,
-          payload: visitNoteEmailPayload(to)
+          payload: currentEmailPayload(to)
         });
         status.textContent = "Email sent successfully.";
         status.classList.add("success");
@@ -3988,7 +4052,7 @@
         status.textContent = error.message || "Email could not be sent.";
         status.classList.add("error");
       } finally {
-        sendButton.disabled = false;
+        updateEmailSendButton();
       }
     }
 
@@ -4161,6 +4225,7 @@
       if (event.key === "Enter") sendCurrentVisitNoteEmail();
       if (event.key === "Escape") closeEmailDialog();
     });
+    document.getElementById("emailRecipientInput").addEventListener("input", updateEmailSendButton);
     document.getElementById("emailDialog").addEventListener("click", event => {
       if (event.target.id === "emailDialog") closeEmailDialog();
     });
