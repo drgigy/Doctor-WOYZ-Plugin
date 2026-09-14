@@ -3720,7 +3720,9 @@
 
     function prescriptionFooterHtml() {
       const footnote = getPrescriptionFootnote();
-      return footnote ? `<div class="template-divider"></div><p class="template-emergency">${formatHtmlText(footnote)}</p>` : "";
+      return footnote
+        ? `<div class="prescription-disclaimer"><div class="template-divider"></div><p class="template-emergency">${formatHtmlText(footnote)}</p></div>`
+        : "";
     }
 
     function prescriptionPrintHtml() {
@@ -3877,13 +3879,14 @@
         #printPreview .visit-rx-item { grid-template-columns: 22px 1fr; column-gap: 8px; }
         #printPreview .clinical-instruction-list,
         #printPreview .visit-instruction-list { margin-top: 12px; gap: 6px; }
-        #printPreview .template-divider { margin-top: 28px; border-top: 1px solid #9ca3af; }
-        #printPreview .template-emergency { margin: 14px 0 0; color: #000000; font-size: 11px; line-height: 1.25; }
-        #printPreview .print-credentials { margin-top: 2cm; padding-top: 0; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
+        #printPreview .prescription-disclaimer { break-inside: avoid; margin-top: 22px; }
+        #printPreview .template-divider { border-top: 1px solid #9ca3af; }
+        #printPreview .template-emergency { margin: 10px 0 0; color: #000000; font-size: 10.5px; line-height: 1.25; max-width: 100%; }
+        #printPreview .print-credentials { margin-top: 1.5cm; padding-top: 0; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
         #printPreview .print-credentials .print-header-size-small { font-size: 11px; }
         #printPreview .print-credentials .print-header-size-medium { font-size: 12px; }
         #printPreview .print-credentials .print-header-size-large { font-size: 14px; }
-        #printPreview .print-credentials.reply-credentials { margin-top: 2cm; }
+        #printPreview .print-credentials.reply-credentials { margin-top: 1.5cm; }
         #printPreview .reply-letter { white-space: normal; font-size: 15px; line-height: 1.65; text-align: left; }
         #printPreview .reply-to { margin-bottom: 4px; }
         #printPreview .reply-recipient { margin-bottom: 18px; }
