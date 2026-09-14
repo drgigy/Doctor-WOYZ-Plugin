@@ -258,14 +258,24 @@ clinical English suitable for pasting into an existing review note.
 
 Rules:
 - Return only the requested JSON object.
-- Put the complete result in the text field as normal paragraphs.
+- Put the complete result in the text field.
 - Preserve all clinical facts, chronology, medicines, doses, investigations,
   examination findings, assessment, advice, and follow-up exactly as dictated.
 - Translate Malayalam clinical content and transliterate names into English.
 - Correct grammar and punctuation, but never invent, infer, recommend, or add
   information that was not spoken.
-- Do not split the result into a visit-note template or add section headings
-  unless the doctor explicitly requests them.
+- Structure the result like a concise basic note only for content that is
+  actually dictated. Do not show empty template headings.
+- Add a heading only when there is dictated content for that heading, for
+  example Review of Investigations, Current Medication, Provisional Diagnosis,
+  Treatment Plan, Advice, or Follow-up.
+- If investigations, blood reports, imaging, EEG, NCS, or scans are dictated,
+  add the heading "Review of Investigations" and write the report name/date
+  below it when dictated.
+- Under Review of Investigations, write each value or finding on a separate
+  line with the appropriate unit. Do not write blood investigation values as a
+  continuous sentence.
+- Do not split the result into the full visit-note template.
 `.trim();
 }
 
@@ -629,6 +639,7 @@ function normalizeBloodUnits(text) {
     });
   }, text);
   return withUnits
+    .replace(/\b(Platelet Count:\s*\d+(?:\.\d+)?)\s+lakh\/uL\s+lakh\b/gi, "$1 lakh/uL")
     .replace(/\s+\/uL\b/g, "/uL")
     .replace(/\s+%/g, "%");
 }
@@ -737,6 +748,42 @@ function formatReviewOfInvestigations(text) {
     .filter(section => section.items.length || !section.heading)
     .flatMap((section, index) => section.heading ? [`${index + 1}. ${section.heading}`, ...section.items] : section.items);
   return output.length ? output.join("\n") : "NIL";
+}
+
+function formatReviewDictationText(text) {
+  if (!text || !text.trim() || text.trim().toUpperCase() === "NIL") return text;
+  const normalized = normalizeBloodUnits(text.trim());
+  const reviewMatch = normalized.match(/\bReview of investigations?\b\s*[:\-]?\s*/i);
+  if (!reviewMatch) return normalized;
+
+  const beforeReview = normalized.slice(0, reviewMatch.index).trim();
+  const reviewBody = normalized.slice(reviewMatch.index + reviewMatch[0].length).trim();
+  if (!reviewBody) return normalized;
+
+  let reportHeading = "";
+  let findingsText = reviewBody;
+  const headingMatch = reviewBody.match(/^([^:\n]{1,120}?(?:report|reports|investigation|investigations|ct|mri|eeg|ncs|ncv|emg|scan|x[- ]?ray)[^:\n]*):\s*(.+)$/i);
+  if (headingMatch) {
+    reportHeading = headingMatch[1].trim();
+    findingsText = headingMatch[2].trim();
+  }
+
+  const findingLines = findingsText
+    .split(/\s*,\s*/)
+    .map(line => line.trim().replace(/\.$/, ""))
+    .filter(Boolean)
+    .map(line => `- ${line}${/[.!?]$/.test(line) ? "" : "."}`);
+
+  const reviewLines = [
+    "Review of Investigations",
+    reportHeading,
+    ...findingLines
+  ].filter(Boolean);
+
+  return [
+    beforeReview,
+    reviewLines.join("\n")
+  ].filter(Boolean).join("\n\n");
 }
 
 function sanitizeTreatmentPlan(report) {
@@ -901,7 +948,8 @@ async function callProcessingService({ apiKey, model, audioBase64, mimeType, mod
     throw error;
   }
 
-  if (reviewDictationMode || replyLetterMode || visitPrescriptionMode) return { text: extractDictation(payload) };
+  if (reviewDictationMode) return { text: formatReviewDictationText(extractDictation(payload)) };
+  if (replyLetterMode || visitPrescriptionMode) return { text: extractDictation(payload) };
   if (prescriptionMode) return { prescription: extractPrescription(payload) };
   if (medicalCertificateMode) return { medicalCertificate: extractMedicalCertificate(payload) };
   return { report: extractReport(payload) };
