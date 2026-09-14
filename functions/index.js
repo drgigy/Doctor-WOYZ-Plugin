@@ -1,5 +1,5 @@
 const admin = require("firebase-admin");
-const chromium = require("@sparticuz/chromium");
+const chromium = require("@sparticuz/chromium").default;
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
 const puppeteer = require("puppeteer-core");
