@@ -3941,7 +3941,8 @@
         #printPreview .visit-note-print .visit-section-heading { margin: 0 0 8px; padding-bottom: 0; border-bottom: 0; color: #003a63; font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
         #printPreview .visit-note-print .visit-section-body { color: #111318; font-size: 14px; line-height: 1.55; }
         #printPreview .visit-note-print .visit-rx-list { gap: 10px; border-top: 0; }
-        #printPreview .visit-note-print .visit-rx-item { grid-template-columns: 26px 1fr; column-gap: 12px; padding: 0; border-bottom: 0; color: #111318; font-size: 13.5px; line-height: 1.42; }
+        #printPreview .visit-note-print .visit-rx-item { grid-template-columns: 26px 1fr; column-gap: 12px; padding: 0 0 11px; border-bottom: 0; color: #111318; font-size: 13.5px; line-height: 1.42; }
+        #printPreview .visit-note-print .visit-rx-item:not(:last-child) { border-bottom: 1px solid #e2e8f0; }
         #printPreview .visit-note-print .visit-rx-item:last-child { border-bottom: 0; padding-bottom: 0; }
         #printPreview .visit-note-print .visit-rx-item .rx-number { color: #111318; font-weight: 900; }
         #printPreview .visit-note-print .visit-rx-item .rx-copy { display: grid; grid-template-columns: minmax(180px, .8fr) 1fr; column-gap: 24px; row-gap: 4px; }
@@ -3965,6 +3966,9 @@
         #printPreview .prescription-template .rx-list { gap: 12px; }
         #printPreview .prescription-template .rx-item,
         #printPreview .prescription-template .instruction-item { grid-template-columns: 26px 1fr; column-gap: 12px; color: #111318; font-size: 14px; line-height: 1.42; }
+        #printPreview .prescription-template .rx-item { padding-bottom: 12px; }
+        #printPreview .prescription-template .rx-item:not(:last-child) { border-bottom: 1px solid #e2e8f0; }
+        #printPreview .prescription-template .rx-item:last-child { padding-bottom: 0; border-bottom: 0; }
         #printPreview .prescription-template .rx-number { color: #111318; font-weight: 900; }
         #printPreview .prescription-template .rx-item .rx-copy { display: grid; grid-template-columns: minmax(220px, .8fr) 1fr; column-gap: 28px; row-gap: 4px; }
         #printPreview .prescription-template .rx-item .medicine-main { display: contents; }
