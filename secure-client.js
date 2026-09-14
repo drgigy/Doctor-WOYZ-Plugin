@@ -725,7 +725,7 @@ function splitInvestigationFindings(line) {
 
 function formatReviewOfInvestigations(text) {
   if (!text || text === "NIL") return text;
-  const reportHeading = "(?:mri|ct|eeg|ncv|emg|doppler|carotid|usg|ecg|echo|holter|blood reports?|blood investigations?|x[- ]?ray|mra|mrv|pet|spect)";
+  const reportHeading = "(?:mri|ct|eeg|ncv|emg|doppler|carotid|usg|ecg|echo|holter|angiogram|coronary angiogram|blood reports?|blood investigations?|x[- ]?ray|mra|mrv|pet|spect)";
   const normalizedText = text
     .replace(/\b(?:NIL|not available)\.?\s*(?=\d+\.\s*[A-Za-z])/gi, "\n")
     .replace(/(\d+\.\s*[A-Za-z][A-Za-z ]+\([^)]+\))\s*-\s*/g, "$1\n- ")
@@ -735,7 +735,9 @@ function formatReviewOfInvestigations(text) {
   const sections = [];
   let currentSection = null;
   lines.forEach(line => {
-    let cleaned = line.replace(/^•\s*/, "- ").replace(/^[-•]\s*/, "- ").trim();
+    let cleaned = line.replace(/^•\s*/, "- ").trim();
+    if (/^-\s*\d+\.\s*/.test(cleaned)) cleaned = cleaned.replace(/^-\s*/, "");
+    cleaned = cleaned.replace(/^[-•]\s*/, "- ").trim();
     if (/^-\s*[^:]{1,45}:\s*(?:NIL|not available)?\.?$/i.test(cleaned)) return;
     const numberedHeading = cleaned.match(new RegExp(`^\\d+\\.\\s*(${reportHeading}\\b.*)$`, "i"));
     if (numberedHeading) {

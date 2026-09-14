@@ -3148,6 +3148,7 @@
       if (!text || text === "NIL") return text;
       return String(text)
         .replace(/\r\n?/g, "\n")
+        .replace(/^-\s*(\d+\.\s*)/gm, "$1")
         .replace(/\s*-\s*(?=[A-Za-z][A-Za-z0-9 /()%+-]{1,40}:)/g, "\n- ")
         .replace(/\.\s+(?=[A-Za-z][A-Za-z0-9 /()%+-]{1,40}:)/g, "\n")
         .split("\n")
@@ -3755,7 +3756,8 @@
             #printPreview .clinical-numbered-row { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; margin: 0 0 4px; color: #111827; font-size: 15px; line-height: 1.45; }
             #printPreview .clinical-report-title span,
             #printPreview .clinical-numbered-row span { color: #111827; text-align: left; }
-            #printPreview .clinical-finding-row { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; margin: 1px 0; color: #111827; font-size: 15px; line-height: 1.45; }
+            #printPreview .clinical-investigations { margin-left: 0; }
+            #printPreview .clinical-finding-row { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; margin: 1px 0 1px 30px; color: #111827; font-size: 15px; line-height: 1.45; }
             #printPreview .clinical-finding-row div::before { content: "- "; }
             #printPreview .clinical-rx-list { gap: 12px; }
             #printPreview .clinical-rx-item,
