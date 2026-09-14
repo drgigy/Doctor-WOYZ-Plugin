@@ -3944,9 +3944,14 @@
         #printPreview .visit-note-print .visit-rx-item { grid-template-columns: 26px 1fr; column-gap: 12px; padding: 0; border-bottom: 0; color: #111318; font-size: 13.5px; line-height: 1.42; }
         #printPreview .visit-note-print .visit-rx-item:last-child { border-bottom: 0; padding-bottom: 0; }
         #printPreview .visit-note-print .visit-rx-item .rx-number { color: #111318; font-weight: 900; }
+        #printPreview .visit-note-print .visit-rx-item .rx-copy { display: grid; grid-template-columns: minmax(180px, .8fr) 1fr; column-gap: 24px; row-gap: 4px; }
+        #printPreview .visit-note-print .visit-rx-item .medicine-main { display: contents; }
         #printPreview .visit-note-print .visit-rx-item .medicine-main strong { color: #111318; font-size: 14px; font-weight: 900; }
+        #printPreview .visit-note-print .visit-rx-item .medicine-main .medicine-instruction { grid-column: 2; grid-row: 1; margin-top: 0; }
         #printPreview .visit-note-print .medicine-instruction { margin-top: 3px; color: #111318; font-size: 13px; }
         #printPreview .visit-note-print .medicine-malayalam { margin-top: 4px; color: #111318; font-size: 12.5px; }
+        #printPreview .visit-note-print .visit-rx-item .rx-copy > .medicine-instruction,
+        #printPreview .visit-note-print .visit-rx-item .rx-copy > .medicine-malayalam { grid-column: 2; }
         #printPreview .visit-note-print .visit-instruction-list { gap: 6px; margin-top: 10px; padding-top: 0; border-top: 0; }
         #printPreview .visit-note-print .prescription-disclaimer { margin-top: 18px; }
         #printPreview .visit-note-print .template-divider { border-top: 1px solid #6b7280; }
@@ -3961,9 +3966,14 @@
         #printPreview .prescription-template .rx-item,
         #printPreview .prescription-template .instruction-item { grid-template-columns: 26px 1fr; column-gap: 12px; color: #111318; font-size: 14px; line-height: 1.42; }
         #printPreview .prescription-template .rx-number { color: #111318; font-weight: 900; }
+        #printPreview .prescription-template .rx-item .rx-copy { display: grid; grid-template-columns: minmax(220px, .8fr) 1fr; column-gap: 28px; row-gap: 4px; }
+        #printPreview .prescription-template .rx-item .medicine-main { display: contents; }
         #printPreview .prescription-template .medicine-main strong { color: #111318; font-size: 15px; font-weight: 900; }
+        #printPreview .prescription-template .medicine-main .medicine-instruction { grid-column: 2; grid-row: 1; margin-top: 0; }
         #printPreview .prescription-template .medicine-instruction { margin-top: 3px; color: #111318; font-size: 13px; }
         #printPreview .prescription-template .medicine-malayalam { margin-top: 4px; color: #111318; font-size: 12.5px; }
+        #printPreview .prescription-template .rx-item .rx-copy > .medicine-instruction,
+        #printPreview .prescription-template .rx-item .rx-copy > .medicine-malayalam { grid-column: 2; }
         #printPreview .prescription-template .instruction-list { gap: 6px; margin-top: 0; }
         #printPreview .prescription-template .prescription-disclaimer { margin-top: 18px; }
         #printPreview .prescription-template + .print-credentials { margin-top: 1.25cm; }
