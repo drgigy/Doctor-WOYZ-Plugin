@@ -109,8 +109,13 @@ function writePdfLine(doc, line) {
     return;
   }
   const isHeading = /^[A-Z0-9 /+().:-]+$/.test(line) && line.length < 80;
+  doc.font(isHeading ? "NotoMalayalamBold" : "NotoMalayalam");
+  if (doc._font?.font?._tables) {
+    // FontKit crashes on some Malayalam GPOS anchors. Disabling GPOS keeps the
+    // text renderable instead of failing the whole email send.
+    doc._font.font._tables.GPOS = null;
+  }
   doc
-    .font(isHeading ? "NotoMalayalamBold" : "NotoMalayalam")
     .fontSize(isHeading ? 12 : 10.5)
     .fillColor(isHeading ? "#004270" : "#111827")
     .text(line, {
