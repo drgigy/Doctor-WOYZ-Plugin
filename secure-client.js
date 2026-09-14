@@ -103,6 +103,11 @@ const MEDICAL_CERTIFICATE_SCHEMA = {
   required: MEDICAL_CERTIFICATE_FIELDS
 };
 
+const DOCTOR_WOYZ_FUNCTION_REGION = "asia-south1";
+const DOCTOR_WOYZ_PROJECT_ID = "woyz-be9e5";
+const SEND_VISIT_NOTE_EMAIL_URL =
+  `https://${DOCTOR_WOYZ_FUNCTION_REGION}-${DOCTOR_WOYZ_PROJECT_ID}.cloudfunctions.net/sendVisitNoteEmailHttp`;
+
 function buildVisitNotePrompt(mode = "ambient") {
   const dictationVisitMode = mode === "visitDictation";
   const visitFields = dictationVisitMode
@@ -947,4 +952,25 @@ export async function generateSecureNote({ apiKey, audioBase64, mimeType, mode: 
     throw new Error("The authorization key or billing configuration does not allow this request.");
   }
   throw new Error(`The visit note could not be generated. ${combinedError.slice(0, 300)}`);
+}
+
+export async function sendVisitNoteEmail({ idToken, payload }) {
+  if (typeof idToken !== "string" || !idToken.trim()) {
+    throw new Error("Device authentication is not ready. Please refresh and try again.");
+  }
+  const response = await fetch(SEND_VISIT_NOTE_EMAIL_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${idToken.trim()}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(result.error || "Email could not be sent.");
+    error.status = response.status;
+    throw error;
+  }
+  return result;
 }

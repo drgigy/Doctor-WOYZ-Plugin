@@ -234,6 +234,13 @@ export async function watchCurrentDeviceApproval(callback) {
   });
 }
 
+export async function currentDeviceIdToken() {
+  const activeServices = await services();
+  if (!activeServices) throw new Error("Remote approval is not configured.");
+  const user = await anonymousUser(activeServices.auth);
+  return user.getIdToken();
+}
+
 export async function adminSignIn(email, password) {
   const activeServices = await services();
   if (!activeServices) throw new Error("Remote approval is not configured.");
