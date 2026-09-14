@@ -3289,6 +3289,23 @@
       return report;
     }
 
+    function isReplySalutation(line) {
+      return /^dear\b/i.test(String(line || "").trim());
+    }
+
+    function replyDoctorName(recipientLines) {
+      const doctorLine = recipientLines.find(line => /\bdr\.?\s+/i.test(line));
+      if (!doctorLine) return "";
+      const match = doctorLine.match(/\bdr\.?\s+(.+)/i);
+      if (!match) return "";
+      return `Dr ${match[1].replace(/[,;].*$/, "").trim()}`.trim();
+    }
+
+    function replyLetterSalutation(recipientLines) {
+      const doctorName = replyDoctorName(recipientLines);
+      return doctorName ? `Dear ${doctorName},` : "Dear Doctor,";
+    }
+
     function normalizeReplyLetterText(text) {
       const lines = String(text || "")
         .replace(/\r\n?/g, "\n")
@@ -3300,6 +3317,9 @@
       const withoutThanks = lines
         .slice(toIndex >= 0 ? toIndex + 1 : 0)
         .filter(line => !/^thank you\.?$/i.test(line));
+      const salutationIndex = withoutThanks.findIndex(isReplySalutation);
+      const existingSalutation = salutationIndex >= 0 ? withoutThanks[salutationIndex] : "";
+      if (salutationIndex >= 0) withoutThanks.splice(salutationIndex, 1);
       const firstParagraphIndex = withoutThanks.findIndex((line, index) => {
         if (index === 0) return false;
         return /^(mr|mrs|ms|miss|master|patient|this|he|she|the)\b\.?/i.test(line) || /[.!?]$/.test(line);
@@ -3310,9 +3330,11 @@
       const paragraphLines = firstParagraphIndex >= 0
         ? withoutThanks.slice(firstParagraphIndex)
         : withoutThanks.slice(recipientLines.length);
+      const salutation = existingSalutation || replyLetterSalutation(recipientLines);
       return [
         "To,",
         recipientLines.join("\n"),
+        salutation,
         paragraphLines.join("\n\n"),
         "Thank you"
       ].filter(Boolean).join("\n\n");
@@ -3456,6 +3478,15 @@
 
     function formatOptionalHtmlText(value) {
       return escapeHtml(value || "").replace(/\n/g, "<br>");
+    }
+
+    function formatParagraphHtml(value) {
+      const paragraphs = String(value || "")
+        .replace(/\r\n?/g, "\n")
+        .split(/\n\s*\n/)
+        .map(paragraph => paragraph.trim())
+        .filter(Boolean);
+      return paragraphs.map(paragraph => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`).join("");
     }
 
     function formatCredentialsHtml(value) {
@@ -3771,6 +3802,9 @@
       const thanksLine = usefulLines.some(line => /^thank you\.?$/i.test(line)) ? "Thank you" : "Thank you";
       const toIndex = withoutThanks.findIndex(line => /^to,?$/i.test(line));
       const contentLines = withoutThanks.slice(toIndex >= 0 ? toIndex + 1 : 0);
+      const salutationIndex = contentLines.findIndex(isReplySalutation);
+      const existingSalutation = salutationIndex >= 0 ? contentLines[salutationIndex] : "";
+      if (salutationIndex >= 0) contentLines.splice(salutationIndex, 1);
       const firstParagraphIndex = contentLines.findIndex((line, index) => {
         if (index === 0) return false;
         return /^(mr|mrs|ms|miss|master|patient|this|he|she|the)\b\.?/i.test(line) || /[.!?]$/.test(line);
@@ -3781,11 +3815,13 @@
       const paragraphLines = firstParagraphIndex >= 0
         ? contentLines.slice(firstParagraphIndex)
         : contentLines.slice(recipientLines.length);
+      const salutation = existingSalutation || replyLetterSalutation(recipientLines);
       return `
         <div class="reply-letter">
           <div class="reply-to">To,</div>
           ${recipientLines.length ? `<div class="reply-recipient">${recipientLines.map(formatOptionalHtmlText).join("<br>")}</div>` : ""}
-          <div class="reply-letter-body">${formatOptionalHtmlText(paragraphLines.join("\n\n"))}</div>
+          <div class="reply-salutation">${formatOptionalHtmlText(salutation)}</div>
+          <div class="reply-letter-body">${formatParagraphHtml(paragraphLines.join("\n\n"))}</div>
           <div class="reply-thanks">${formatOptionalHtmlText(thanksLine)}</div>
         </div>
       `;
@@ -3798,7 +3834,7 @@
             <div class="certificate-date">${formatHtmlText(document.getElementById("certificateDate").value.trim())}</div>
             <h1 class="certificate-title">To Whomsoever It May Concern</h1>
             <div class="certificate-body">
-              ${formatHtmlText(certificateBodyText())}
+              ${formatParagraphHtml(certificateBodyText())}
             </div>
             <div class="certificate-thanks">Thank you</div>
           </div>
@@ -3918,18 +3954,23 @@
         #printPreview .prescription-template .instruction-list { gap: 6px; margin-top: 0; }
         #printPreview .prescription-template .prescription-disclaimer { margin-top: 18px; }
         #printPreview .prescription-template + .print-credentials { margin-top: 1.25cm; }
-        #printPreview .reply-letter { max-width: 100%; color: #111318; white-space: normal; font-size: 15px; line-height: 1.68; text-align: left; }
+        #printPreview .reply-letter { max-width: 100%; color: #111318; white-space: normal; font-size: 16px; line-height: 1.85; text-align: left; }
         #printPreview .reply-to { margin: 0 0 6px; color: #003a63; font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
-        #printPreview .reply-recipient { display: inline-block; margin: 0 0 22px; padding: 10px 14px; border-radius: 6px; background: #eef3f8; color: #111318; font-size: 13.5px; font-weight: 700; line-height: 1.45; }
-        #printPreview .reply-letter-body { margin-top: 0; color: #111318; }
-        #printPreview .reply-thanks { margin-top: 1.4em; color: #111318; font-weight: 700; }
+        #printPreview .reply-recipient { display: block; width: fit-content; max-width: 72%; margin: 0 0 28px; padding: 10px 14px; border-radius: 6px; background: #eef3f8; color: #111318; font-size: 13.5px; font-weight: 700; line-height: 1.45; }
+        #printPreview .reply-salutation { margin: 0 0 16px; color: #111318; font-weight: 700; }
+        #printPreview .reply-letter-body { margin-top: 0; color: #111318; text-align: justify; text-align-last: left; }
+        #printPreview .reply-letter-body p { margin: 0 0 18px; }
+        #printPreview .reply-letter-body p:last-child { margin-bottom: 0; }
+        #printPreview .reply-thanks { margin-top: 1.8em; color: #111318; font-weight: 700; }
         #printPreview .reply-letter + .print-credentials,
         #printPreview .reply-letter + .print-credentials.reply-credentials { margin-top: 1.25cm; }
         #printPreview .certificate-page { padding-top: 18px; color: #111318; }
         #printPreview .certificate-date { display: inline-block; float: right; margin: 0 0 34px 18px; padding: 8px 12px; border-radius: 6px; background: #eef3f8; color: #111318; font-size: 13px; font-weight: 700; }
         #printPreview .certificate-title { clear: both; margin: 0 0 30px; color: #003a63; font-size: 20px; font-weight: 900; text-align: center; text-transform: uppercase; text-decoration: none; letter-spacing: .04em; }
-        #printPreview .certificate-body { clear: both; margin-top: 0; color: #111318; white-space: normal; font-size: 16px; line-height: 1.75; text-align: justify; }
-        #printPreview .certificate-thanks { margin-top: 36px; color: #111318; font-size: 15px; font-weight: 700; }
+        #printPreview .certificate-body { clear: both; margin-top: 0; color: #111318; white-space: normal; font-size: 16px; line-height: 1.9; text-align: justify; text-align-last: left; }
+        #printPreview .certificate-body p { margin: 0 0 18px; }
+        #printPreview .certificate-body p:last-child { margin-bottom: 0; }
+        #printPreview .certificate-thanks { margin-top: 42px; color: #111318; font-size: 15px; font-weight: 700; }
         #printPreview .certificate-page + .print-credentials { margin-top: 1.25cm; }
         #printPreview .prescription-disclaimer { break-inside: avoid; margin-top: 22px; }
         #printPreview .template-divider { border-top: 1px solid #9ca3af; }
