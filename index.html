@@ -1110,6 +1110,11 @@
       box-shadow: 0 5px 14px rgba(255, 69, 69, 0.08);
     }
 
+    .copy-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
     .email-dialog {
       position: fixed;
       inset: 0;
@@ -2081,7 +2086,6 @@
     <div class="email-dialog" id="emailDialog" hidden>
       <div class="email-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="emailDialogTitle">
         <h2 id="emailDialogTitle">Email visit note</h2>
-        <p>The generated visit note PDF will be sent from woyzhealth@gmail.com.</p>
         <label for="emailRecipientInput">
           Receiver email address
           <input id="emailRecipientInput" type="email" inputmode="email" autocomplete="email" placeholder="patient@example.com">
@@ -2089,7 +2093,7 @@
         <p class="email-dialog-status" id="emailDialogStatus"></p>
         <div class="email-dialog-actions">
           <button class="copy-button" id="cancelEmailButton" type="button">Cancel</button>
-          <button class="copy-button" id="sendEmailButton" type="button">Send</button>
+          <button class="copy-button" id="sendEmailButton" type="button" disabled>Send</button>
         </div>
       </div>
     </div>
@@ -3297,6 +3301,29 @@
       ].filter(([, value]) => value && value.toUpperCase() !== "NIL");
     }
 
+    function visitSectionContentHtml(heading, value) {
+      if (/prescription/i.test(heading)) {
+        const { medicines, instructions } = splitPrescriptionForTemplate(value);
+        if (!medicines.length) return formatHtmlText(value);
+        const medicineHtml = medicines.map((item, index) => `
+          <div class="rx-item visit-rx-item">
+            <div class="rx-number">${escapeHtml(item.number || String(index + 1))}.</div>
+            <div class="rx-copy">${item.lines.map(formatMedicineLine).join("")}</div>
+          </div>
+        `).join("");
+        const instructionHtml = instructions.length
+          ? `<div class="instruction-list visit-instruction-list">${instructions.map((line, index) => `
+            <div class="instruction-item">
+              <div class="rx-number">${index + 1}.</div>
+              <div>${formatHtmlText(line)}</div>
+            </div>
+          `).join("")}</div>`
+          : "";
+        return `<div class="rx-list visit-rx-list">${medicineHtml}</div>${instructionHtml}`;
+      }
+      return formatHtmlText(value);
+    }
+
     function visitNotePrintHtml(title, sections) {
       const metaItems = visitPatientMetaItems();
       const metaHtml = metaItems.length
@@ -3318,7 +3345,7 @@
           ${sections.map(([heading, value]) => `
             <section>
               <h2>${escapeHtml(heading)}</h2>
-              <div class="content">${formatHtmlText(value)}</div>
+              <div class="content">${visitSectionContentHtml(heading, value)}</div>
             </section>
           `).join("")}
         </div>
@@ -3510,8 +3537,8 @@
             #printPreview .medicine-malayalam { margin-top: 4px; font-size: 12px; }
             #printPreview .template-divider { margin-top: 28px; border-top: 1px solid #9ca3af; }
             #printPreview .template-emergency { margin: 14px 0 0; color: #000000; font-size: 11px; line-height: 1.25; }
-            #printPreview .print-credentials { margin-top: auto; padding-top: 3cm; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
-            #printPreview .print-credentials.reply-credentials { margin-top: 3cm; }
+            #printPreview .print-credentials { margin-top: 5cm; padding-top: 0; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
+            #printPreview .print-credentials.reply-credentials { margin-top: 5cm; }
             #printPreview .reply-letter { white-space: normal; font-size: 15px; line-height: 1.65; text-align: left; }
             #printPreview .reply-to { margin-bottom: 4px; }
             #printPreview .reply-recipient { margin-bottom: 18px; }
@@ -3640,6 +3667,7 @@
       const input = document.getElementById("emailRecipientInput");
       const status = document.getElementById("emailDialogStatus");
       const sendButton = document.getElementById("sendEmailButton");
+      if (sendButton.disabled) return;
       const to = input.value.trim();
       status.className = "email-dialog-status";
       if (!validEmailAddress(to)) {
