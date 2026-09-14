@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const PDFDocument = require("pdfkit");
 const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 
@@ -6,6 +7,9 @@ admin.initializeApp();
 
 const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
 const EMAIL_FROM = "Doctor WOYZ <notes@woyz.in>";
+const ADMIN_EMAILS = new Set(["drgigy@gmail.com"]);
+const FONT_REGULAR = require.resolve("@fontsource/noto-sans-malayalam/files/noto-sans-malayalam-malayalam-400-normal.woff");
+const FONT_BOLD = require.resolve("@fontsource/noto-sans-malayalam/files/noto-sans-malayalam-malayalam-700-normal.woff");
 const ALLOWED_ORIGINS = new Set([
   "https://doctor.woyz.in",
   "https://drgigy.github.io",
@@ -52,33 +56,6 @@ function normalizeEmail(value) {
   return email;
 }
 
-function pdfSafeText(value) {
-  return cleanText(value)
-    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "")
-    .replace(/\t/g, " ");
-}
-
-function escapePdfText(value) {
-  return pdfSafeText(value).replace(/[\\()]/g, "\\$&");
-}
-
-function wrapLine(value, max = 88) {
-  const words = pdfSafeText(value).split(/\s+/).filter(Boolean);
-  const lines = [];
-  let line = "";
-  for (const word of words) {
-    const next = line ? `${line} ${word}` : word;
-    if (next.length > max && line) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = next;
-    }
-  }
-  if (line) lines.push(line);
-  return lines.length ? lines : [""];
-}
-
 function buildPdfLines(payload) {
   const lines = [];
   const header = stripHtml(payload.printHeaderHtml || "");
@@ -108,7 +85,7 @@ function buildPdfLines(payload) {
           lines.push("");
           continue;
         }
-        lines.push(...wrapLine(line));
+        lines.push(line);
       }
     }
     lines.push("");
@@ -117,7 +94,7 @@ function buildPdfLines(payload) {
   const footnote = cleanText(payload.footnote);
   if (footnote) {
     lines.push("Note");
-    for (const line of footnote.split("\n")) lines.push(...wrapLine(line));
+    for (const line of footnote.split("\n")) lines.push(cleanText(line));
     lines.push("");
   }
 
@@ -126,68 +103,47 @@ function buildPdfLines(payload) {
   return lines.filter((line, index, all) => !(line === "" && all[index - 1] === ""));
 }
 
-function makePdf(payload) {
-  const width = 595.28;
-  const height = 841.89;
-  const marginX = 54;
-  const marginTop = 64;
-  const lineHeight = 16;
-  const lines = buildPdfLines(payload);
-  const pageCapacity = Math.floor((height - marginTop - 54) / lineHeight);
-  const pages = [];
-  for (let cursor = 0; cursor < lines.length; cursor += pageCapacity) {
-    pages.push(lines.slice(cursor, cursor + pageCapacity));
+function writePdfLine(doc, line) {
+  if (!line) {
+    doc.moveDown(0.45);
+    return;
   }
-  if (!pages.length) pages.push(["Visit Note"]);
-
-  const objects = [];
-  const addObject = content => {
-    objects.push(content);
-    return objects.length;
-  };
-
-  const fontId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-  const pageIds = [];
-  const contentIds = [];
-
-  for (const pageLines of pages) {
-    const commands = ["BT", "/F1 11 Tf", "14 TL", `${marginX} ${height - marginTop} Td`];
-    pageLines.forEach((line, index) => {
-      if (index > 0) commands.push("T*");
-      if (line) commands.push(`(${escapePdfText(line)}) Tj`);
+  const isHeading = /^[A-Z0-9 /+().:-]+$/.test(line) && line.length < 80;
+  doc
+    .font(isHeading ? "NotoMalayalamBold" : "NotoMalayalam")
+    .fontSize(isHeading ? 12 : 10.5)
+    .fillColor(isHeading ? "#004270" : "#111827")
+    .text(line, {
+      width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+      lineGap: isHeading ? 2 : 1
     });
-    commands.push("ET");
-    const stream = commands.join("\n");
-    const contentId = addObject(`<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`);
-    contentIds.push(contentId);
-    pageIds.push(null);
-  }
+  doc.moveDown(isHeading ? 0.35 : 0.2);
+}
 
-  const pagesIdPlaceholder = objects.length + pages.length + 1;
-  for (let index = 0; index < pages.length; index += 1) {
-    const pageId = addObject(
-      `<< /Type /Page /Parent ${pagesIdPlaceholder} 0 R /MediaBox [0 0 ${width} ${height}] ` +
-      `/Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentIds[index]} 0 R >>`
-    );
-    pageIds[index] = pageId;
-  }
+function makePdf(payload) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({
+      size: "A4",
+      margins: { top: 52, right: 52, bottom: 52, left: 52 },
+      info: {
+        Title: cleanText(payload.title, "Visit Note"),
+        Author: "Doctor WOYZ"
+      }
+    });
+    const chunks = [];
+    doc.on("data", chunk => chunks.push(chunk));
+    doc.on("error", reject);
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
 
-  const pagesId = addObject(`<< /Type /Pages /Kids [${pageIds.map(id => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`);
-  const catalogId = addObject(`<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+    doc.registerFont("NotoMalayalam", FONT_REGULAR);
+    doc.registerFont("NotoMalayalamBold", FONT_BOLD);
 
-  let pdf = "%PDF-1.4\n";
-  const offsets = [0];
-  objects.forEach((object, index) => {
-    offsets.push(Buffer.byteLength(pdf));
-    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    for (const line of buildPdfLines(payload)) {
+      writePdfLine(doc, line);
+    }
+
+    doc.end();
   });
-  const xrefOffset = Buffer.byteLength(pdf);
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  for (let index = 1; index < offsets.length; index += 1) {
-    pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
-  }
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
-  return Buffer.from(pdf, "binary");
 }
 
 function emailBody(payload) {
@@ -213,7 +169,9 @@ async function verifyApprovedDevice(req, payload) {
 
   const snapshot = await admin.firestore().collection("deviceApprovals").doc(deviceId).get();
   const device = snapshot.exists ? snapshot.data() : null;
-  if (!device || device.ownerUid !== decoded.uid || device.status !== "approved") {
+  const adminEmail = cleanText(decoded.email).toLowerCase();
+  const isAdmin = ADMIN_EMAILS.has(adminEmail);
+  if (!device || device.status !== "approved" || (!isAdmin && device.ownerUid !== decoded.uid)) {
     throw Object.assign(new Error("This device is not approved to send email."), { status: 403 });
   }
   return decoded;
@@ -245,7 +203,7 @@ exports.sendVisitNoteEmailHttp = onRequest(
       const to = normalizeEmail(payload.to);
       if (!to) throw Object.assign(new Error("A valid receiver email address is required."), { status: 400 });
 
-      const pdf = makePdf(payload);
+      const pdf = await makePdf(payload);
       const safeTitle = cleanText(payload.title, "Visit Note").replace(/[^\w.-]+/g, "_").slice(0, 80);
       const resendResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
