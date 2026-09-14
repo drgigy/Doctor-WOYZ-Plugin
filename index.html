@@ -3318,6 +3318,46 @@
       ].filter(Boolean).join("\n\n");
     }
 
+    function escapeRegExp(value) {
+      return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function instructionStartIndex(text) {
+      const match = String(text || "").search(/\s(?:take|use|apply|instill|continue|once|twice|thrice|one|two|three|half|sos|at|in|for|before|after|morning|night|bedtime|noon)\b/i);
+      return match > 0 ? match : -1;
+    }
+
+    function medicineNameCandidates(medicineLine) {
+      const cleanLine = String(medicineLine || "")
+        .replace(/^\d+[\.)]\s*/, "")
+        .replace(/^[-•]\s*/, "")
+        .trim();
+      if (!cleanLine) return [];
+      const candidates = new Set();
+      const separators = [
+        cleanLine.search(/\s[-–—]\s/),
+        cleanLine.search(/,\s*(?:take|use|apply|instill|continue)\b/i),
+        instructionStartIndex(cleanLine)
+      ].filter(index => index > 0);
+      const medicinePart = separators.length ? cleanLine.slice(0, Math.min(...separators)).trim() : cleanLine;
+      [medicinePart, medicinePart.replace(/^(tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syp|syrup|inj|injection|cream|ointment|drops?)\s+/i, "").trim()]
+        .filter(candidate => /[A-Za-z]/.test(candidate) && candidate.length > 3)
+        .forEach(candidate => candidates.add(candidate));
+      return [...candidates].sort((a, b) => b.length - a.length);
+    }
+
+    function removeMedicineNameFromMalayalamInstruction(line, medicineLine) {
+      if (!/[\u0D00-\u0D7F]/.test(line)) return line;
+      let cleaned = String(line || "");
+      medicineNameCandidates(medicineLine).forEach(candidate => {
+        const pattern = escapeRegExp(candidate).replace(/\s+/g, "\\s+");
+        cleaned = cleaned.replace(new RegExp(`\\s*${pattern}\\s*[-–—:]?\\s*`, "gi"), " ");
+      });
+      cleaned = cleaned.replace(/\b(?:(?:tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syp|syrup|inj|injection|cream|ointment|drops?)\s+)?[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z][A-Za-z0-9-]*){0,4}\s+\d+(?:\s*(?:mg|mcg|g|ml|units?|iu))?\b/gi, " ");
+      cleaned = cleaned.replace(/\bഒരു\s+(കഴിക്കുക|കഴിക്കണം|ഉപയോഗിക്കുക|ഉപയോഗിക്കണം)\b/g, "$1");
+      return cleaned.replace(/\s{2,}/g, " ").replace(/^\s*[-–—:]\s*/, "").trim();
+    }
+
     function numberPrescriptionText(text) {
       if (!text || text.trim().toUpperCase() === "NIL") return "NIL";
       const lines = text
@@ -3334,6 +3374,7 @@
       const output = [];
       let medicineNumber = 0;
       let inAdvice = false;
+      let currentMedicineLine = "";
       lines.forEach(line => {
         if (/^(medications?|rx)\s*:?$/i.test(line)) return;
         if (/^advice\s*:?$/i.test(line)) {
@@ -3344,11 +3385,12 @@
         const hasMalayalam = /[\u0D00-\u0D7F]/.test(line);
         const isMedicine = /^(tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syp|syrup|inj|injection|cream|ointment|drops?)\b/i.test(line);
         if (!inAdvice && hasMalayalam) {
-          output.push(line);
+          output.push(removeMedicineNameFromMalayalamInstruction(line, currentMedicineLine));
           return;
         }
         if (!inAdvice && isMedicine) {
           medicineNumber += 1;
+          currentMedicineLine = line;
           output.push(`${medicineNumber}. ${line}`);
           return;
         }

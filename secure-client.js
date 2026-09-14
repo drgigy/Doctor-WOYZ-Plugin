@@ -33,7 +33,7 @@ const REPORT_FIELD_DESCRIPTIONS = {
   currentMedication: "Only medicines described as already being taken, one numbered medicine per line, otherwise NIL.",
   provisionalDiagnosis: "Most likely working or provisional diagnosis clearly supported by the complete consultation, investigation review, or doctor assessment. It need not be introduced by the words provisional diagnosis. Do not guess from isolated symptoms, medications, or general medical knowledge. Use NIL when unsupported.",
   treatmentPlan: "Plan, advice, orders, referral, follow-up, monitoring, reassurance, or conservative management clearly supported by the consultation. It need not be introduced by the words treatment plan. Do not put explicitly dictated prescription medicines here; use prescription. Never invent drug changes, procedures, investigations, or follow-up. Use NIL when unsupported.",
-  prescription: "Only medicines explicitly dictated as prescription, newly prescribed, started, changed, or explicitly continued as a prescription. Use numbered medicine entries with medicine name and dose, English patient instruction, and Malayalam translation below. Use NIL when unsupported."
+  prescription: "Only medicines explicitly dictated as prescription, newly prescribed, started, changed, or explicitly continued as a prescription. Use numbered medicine entries with medicine name and dose, English patient instruction, and Malayalam translation of the instruction only below. Do not repeat the medicine name in the Malayalam line. Use NIL when unsupported."
 };
 
 const REPORT_SCHEMA = {
@@ -78,7 +78,7 @@ const PRESCRIPTION_SCHEMA = {
     patientAge: { type: "string", description: "Patient age exactly as spoken, otherwise NIL." },
     patientSex: { type: "string", description: "Patient sex or gender exactly as spoken, otherwise NIL." },
     patientUhid: { type: "string", description: "UHID exactly as spoken, otherwise NIL." },
-    medicationsAdvised: { type: "string", description: "Only explicitly dictated medications, advice, investigations, and follow-up. Use the same style as the embedded Visit + Prescription Prescription section: Medications: with numbered medicine lines and Malayalam instruction lines, then Advice: for review/investigation/follow-up instructions. Never infer missing details." }
+    medicationsAdvised: { type: "string", description: "Only explicitly dictated medications, advice, investigations, and follow-up. Use the same style as the embedded Visit + Prescription Prescription section: Medications: with numbered medicine lines and Malayalam instruction-only lines, then Advice: for review/investigation/follow-up instructions. Never repeat the medicine name in Malayalam instruction lines. Never infer missing details." }
   },
   required: PRESCRIPTION_FIELDS
 };
@@ -400,16 +400,16 @@ Formatting rules:
   Medications:
   1. Tablet/Cap/Syrup/Inj brand name dose - clear English patient instruction
      with timing, duration, and food/administration instruction.
-     Malayalam patient instruction for the same medicine.
+     Malayalam patient instruction only, without repeating medicine name or dose.
   Advice:
   - Review/follow-up/investigation instructions line by line
 - Do not write the word "Malayalam" before the Malayalam text. Put the
   Malayalam instruction directly below the English instruction.
 - For each prescription medicine, keep the medicine name and dose as the first
-  part of the line, then write a clear English instruction. Directly below it,
-  write the same patient-facing instruction in Malayalam when possible.
-- Do not translate medicine brand names into Malayalam. Keep medicine names and
-  doses in English in both English and Malayalam instruction lines.
+  part of the English line, then write a clear English instruction. Directly
+  below it, write only the same patient-facing instruction in Malayalam when
+  possible. Do not repeat the medicine name, brand name, or dose in the
+  Malayalam line.
 - Do not put advice such as "continue medicines", "review after one month", or
   investigation advice as numbered medicine rows.
 - For each medication, keep brand name and dose clear. Put timing, duration,
@@ -426,9 +426,9 @@ Formatting rules:
   start of a line or sentence. Examples: "1 tablet" -> "ഒരു ഗുളിക", "10 days"
   -> "പത്ത് ദിവസം", "20 days" -> "ഇരുപത് ദിവസം", "1 month" -> "ഒരു മാസം",
   "2 weeks" -> "രണ്ട് ആഴ്ച".
-- Keep drug names and doses in English/numerals inside Malayalam instruction
-  lines, for example "Gabapin 300 mg" and "Levipil 250 mg" should remain in
-  English.
+- Malayalam instruction lines must contain only the translated patient
+  instruction. Do not include drug names or doses there; they are already shown
+  in the English medicine line.
 - If one duration is dictated for a group of medicines, repeat that duration in
   every medication line. Do not leave duration implicit or blank for any
   prescribed medicine when a shared duration was spoken.
@@ -504,7 +504,7 @@ Rules:
   Medications:
   1. Tablet/Cap/Syrup/Inj brand name dose - clear English patient instruction
      with timing, duration, and food/administration instruction.
-     Malayalam patient instruction for the same medicine.
+     Malayalam patient instruction only, without repeating medicine name or dose.
   Advice:
   - Review/follow-up/investigation instructions line by line
 - Do not combine section headings and content into one continuous sentence.
@@ -512,10 +512,10 @@ Rules:
 - Do not write the word "Malayalam" before the Malayalam text. Put the
   Malayalam instruction directly below the English instruction.
 - For each prescription medicine, keep the medicine name and dose as the first
-  part of the line, then write a clear English instruction. Directly below it,
-  write the same patient-facing instruction in Malayalam when possible.
-- Do not translate medicine brand names into Malayalam. Keep medicine names and
-  doses in English in both English and Malayalam instruction lines.
+  part of the English line, then write a clear English instruction. Directly
+  below it, write only the same patient-facing instruction in Malayalam when
+  possible. Do not repeat the medicine name, brand name, or dose in the
+  Malayalam line.
 - Do not put advice such as "continue medicines", "review after one month", or
   investigation advice as numbered medicine rows.
 - If investigations, lab tests, imaging, EEG/NCS, scans, or follow-up tests are
@@ -684,9 +684,51 @@ function numberMedicationItems(text) {
     .join("\n");
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function instructionStartIndex(text) {
+  const match = String(text || "").search(/\s(?:take|use|apply|instill|continue|once|twice|thrice|one|two|three|half|sos|at|in|for|before|after|morning|night|bedtime|noon)\b/i);
+  return match > 0 ? match : -1;
+}
+
+function medicineNameCandidates(medicineLine) {
+  const cleanLine = String(medicineLine || "")
+    .replace(/^\d+[\.)]\s*/, "")
+    .replace(/^[-•]\s*/, "")
+    .trim();
+  if (!cleanLine) return [];
+  const candidates = new Set();
+  const separators = [
+    cleanLine.search(/\s[-–—]\s/),
+    cleanLine.search(/,\s*(?:take|use|apply|instill|continue)\b/i),
+    instructionStartIndex(cleanLine)
+  ].filter(index => index > 0);
+  const medicinePart = separators.length ? cleanLine.slice(0, Math.min(...separators)).trim() : cleanLine;
+  [medicinePart, medicinePart.replace(/^(tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syp|syrup|inj|injection|cream|ointment|drops?)\s+/i, "").trim()]
+    .filter(candidate => /[A-Za-z]/.test(candidate) && candidate.length > 3)
+    .forEach(candidate => candidates.add(candidate));
+  return [...candidates].sort((a, b) => b.length - a.length);
+}
+
+function removeMedicineNameFromMalayalamInstruction(line, medicineLine) {
+  if (!/[\u0D00-\u0D7F]/.test(line)) return line;
+  let cleaned = String(line || "");
+  medicineNameCandidates(medicineLine).forEach(candidate => {
+    const pattern = escapeRegExp(candidate).replace(/\s+/g, "\\s+");
+    cleaned = cleaned.replace(new RegExp(`\\s*${pattern}\\s*[-–—:]?\\s*`, "gi"), " ");
+  });
+  cleaned = cleaned.replace(/\b(?:(?:tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syp|syrup|inj|injection|cream|ointment|drops?)\s+)?[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z][A-Za-z0-9-]*){0,4}\s+\d+(?:\s*(?:mg|mcg|g|ml|units?|iu))?\b/gi, " ");
+  cleaned = cleaned.replace(/\bഒരു\s+(കഴിക്കുക|കഴിക്കണം|ഉപയോഗിക്കുക|ഉപയോഗിക്കണം)\b/g, "$1");
+  return cleaned.replace(/\s{2,}/g, " ").replace(/^\s*[-–—:]\s*/, "").trim();
+}
+
 function numberPrescriptionItems(text) {
   const formatted = formatMedicationLikeText(text);
   if (!formatted || formatted === "NIL") return formatted;
+  let currentMedicineLine = "";
+  let medicineNumber = 0;
   return formatted
     .replace(/([a-z)])(\d+[\.)])(?=\s*[A-Z])/g, "$1\n$2")
     .split("\n")
@@ -697,7 +739,17 @@ function numberPrescriptionItems(text) {
       .replace(/\s*\d+[\.)]\s*$/, "")
       .trim())
     .filter(Boolean)
-    .map((line, index) => `${index + 1}. ${line}`)
+    .map(line => {
+      const hasMalayalam = /[\u0D00-\u0D7F]/.test(line);
+      const isMedicine = /^(tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syp|syrup|inj|injection|cream|ointment|drops?)\b/i.test(line);
+      if (hasMalayalam) return removeMedicineNameFromMalayalamInstruction(line, currentMedicineLine);
+      if (isMedicine) {
+        currentMedicineLine = line;
+        medicineNumber += 1;
+        return `${medicineNumber}. ${line}`;
+      }
+      return line;
+    })
     .join("\n");
 }
 
