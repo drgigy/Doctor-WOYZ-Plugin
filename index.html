@@ -1931,17 +1931,25 @@
             <button class="copy-button" id="emailVisitButton" type="button">Email</button>
           </div>
           <div class="result-actions" id="dictationActions" style="display:none;">
-            <button class="copy-button" id="copyDictationButton" type="button">Copy Dictation</button>
-            <button class="copy-button" id="printCombinedPrescriptionButton" type="button" style="display:none;">Print Prescription</button>
+            <button class="copy-button" id="previewDictationButton" type="button">Preview</button>
+            <button class="copy-button" id="copyDictationWithoutNilButton" type="button">Copy without NIL</button>
+            <button class="copy-button" id="copyDictationButton" type="button">Copy All</button>
             <button class="copy-button" id="printDictationButton" type="button">Print</button>
+            <button class="copy-button" id="emailDictationButton" type="button">Email</button>
           </div>
           <div class="result-actions" id="prescriptionActions" style="display:none;">
-            <button class="copy-button" id="copyPrescriptionButton" type="button">Copy Prescription</button>
+            <button class="copy-button" id="previewPrescriptionButton" type="button">Preview</button>
+            <button class="copy-button" id="copyPrescriptionWithoutNilButton" type="button">Copy without NIL</button>
+            <button class="copy-button" id="copyPrescriptionButton" type="button">Copy All</button>
             <button class="copy-button" id="printPrescriptionButton" type="button">Print</button>
+            <button class="copy-button" id="emailPrescriptionButton" type="button">Email</button>
           </div>
           <div class="result-actions" id="certificateActions" style="display:none;">
-            <button class="copy-button" id="copyCertificateButton" type="button">Copy Certificate</button>
+            <button class="copy-button" id="previewCertificateButton" type="button">Preview</button>
+            <button class="copy-button" id="copyCertificateWithoutNilButton" type="button">Copy without NIL</button>
+            <button class="copy-button" id="copyCertificateButton" type="button">Copy All</button>
             <button class="copy-button" id="printCertificateButton" type="button">Print</button>
+            <button class="copy-button" id="emailCertificateButton" type="button">Email</button>
           </div>
         </div>
         <div class="result-grid" id="visitNoteResult">
@@ -2708,7 +2716,9 @@
         };
         processingText.textContent = processingMessages[backendMode] || "Preparing your visit note...";
         const result = await processWithSecureService(blob);
-        if (["reviewDictation", "visitPrescription", "replyLetter"].includes(result.mode)) {
+        if (result.mode === "visitPrescription") {
+          showVisitNoteResult(parseVisitPrescriptionText(result.text), result.mode);
+        } else if (["reviewDictation", "replyLetter"].includes(result.mode)) {
           showTextResult(result.text, result.mode);
         } else if (result.mode === "prescription") {
           showPrescriptionResult(result.prescription);
@@ -2777,10 +2787,8 @@
       document.getElementById("prescriptionResult").classList.remove("visible");
       document.getElementById("certificateResult").classList.remove("visible");
       document.getElementById("dictationResult").querySelector("h3").textContent = labels[mode] || "Review Dictation";
-      document.getElementById("copyDictationButton").textContent =
-        mode === "replyLetter" ? "Copy Letter" : mode === "visitPrescription" ? "Copy Note" : "Copy Dictation";
-      document.getElementById("printCombinedPrescriptionButton").style.display =
-        mode === "visitPrescription" ? "" : "none";
+      document.getElementById("copyDictationButton").textContent = "Copy All";
+      document.getElementById("copyDictationWithoutNilButton").textContent = "Copy without NIL";
       document.getElementById("dictationText").value = displayText || "";
       scheduleTextareaResize();
     }
@@ -2800,7 +2808,7 @@
       document.getElementById("dictationResult").classList.remove("visible");
       document.getElementById("prescriptionResult").classList.add("visible");
       document.getElementById("certificateResult").classList.remove("visible");
-      document.getElementById("prescriptionDate").value = data.date || new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
+      document.getElementById("prescriptionDate").value = formatDisplayDate(data.date);
       document.getElementById("prescriptionName").value = data.patientName || "NIL";
       document.getElementById("prescriptionAge").value = data.patientAge || "NIL";
       document.getElementById("prescriptionSex").value = data.patientSex || "NIL";
@@ -3085,6 +3093,34 @@
       return state.resultMode === "visitDictation" ? visitDictationFields : caseFields;
     }
 
+    function todayDisplayDate() {
+      return new Date().toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "Asia/Kolkata"
+      });
+    }
+
+    function formatDisplayDate(value) {
+      const raw = String(value || "").trim();
+      if (!raw || raw.toUpperCase() === "NIL") return todayDisplayDate();
+      const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (isoMatch) {
+        return `${isoMatch[3].padStart(2, "0")}/${isoMatch[2].padStart(2, "0")}/${isoMatch[1]}`;
+      }
+      const date = new Date(raw);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          timeZone: "Asia/Kolkata"
+        });
+      }
+      return raw;
+    }
+
     function collectFields(fields, omitNil = false) {
       return fields
         .map(([title, id]) => [title, document.getElementById(id).value.trim()])
@@ -3106,6 +3142,86 @@
         .map(line => line.trim())
         .filter(Boolean)
         .join("\n\n");
+    }
+
+    function formatReviewOfInvestigationsText(text) {
+      if (!text || text === "NIL") return text;
+      return String(text)
+        .replace(/\r\n?/g, "\n")
+        .replace(/\s*-\s*(?=[A-Za-z][A-Za-z0-9 /()%+-]{1,40}:)/g, "\n- ")
+        .replace(/\.\s+(?=[A-Za-z][A-Za-z0-9 /()%+-]{1,40}:)/g, "\n")
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    function parseVisitPrescriptionText(text) {
+      const normalized = normalizeCombinedVisitPrescriptionText(text);
+      const report = {
+        patientName: "NIL",
+        patientAge: "NIL",
+        patientSex: "NIL",
+        patientUhid: "NIL",
+        presentingComplaint: "NIL",
+        historyOfPresentIllness: "NIL",
+        pastMedicalHistory: "NIL",
+        allergies: "NIL",
+        familyHistory: "NIL",
+        personalHistory: "NIL",
+        examinationFindings: "NIL",
+        reviewOfInvestigations: "NIL",
+        currentMedication: "NIL",
+        provisionalDiagnosis: "NIL",
+        treatmentPlan: "NIL",
+        prescription: "NIL"
+      };
+      const headingMap = [
+        [/^(name|patient name)$/i, "patientName"],
+        [/^(age|patient age)$/i, "patientAge"],
+        [/^(sex|gender|patient sex)$/i, "patientSex"],
+        [/^(uhid|id|patient id)$/i, "patientUhid"],
+        [/^(chief complaints?|presenting complaints?)$/i, "presentingComplaint"],
+        [/^history of present illness$/i, "historyOfPresentIllness"],
+        [/^past medical(?: or surgical)? history$/i, "pastMedicalHistory"],
+        [/^allergies$/i, "allergies"],
+        [/^family history$/i, "familyHistory"],
+        [/^personal history$/i, "personalHistory"],
+        [/^examination findings?|physical examination$/i, "examinationFindings"],
+        [/^review of investigations?$/i, "reviewOfInvestigations"],
+        [/^current medications?$/i, "currentMedication"],
+        [/^(diagnosis|provisional diagnosis)$/i, "provisionalDiagnosis"],
+        [/^(orders|treatment plan|advice|follow[- ]?up)$/i, "treatmentPlan"],
+        [/^(prescription|rx|medications?)$/i, "prescription"]
+      ];
+      let currentField = null;
+      normalized
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean)
+        .forEach(line => {
+          const headingLine = line.match(/^([^:]+):\s*(.*)$/);
+          const candidateHeading = headingLine ? headingLine[1].trim() : line.replace(/:$/, "").trim();
+          const mapped = headingMap.find(([pattern]) => pattern.test(candidateHeading));
+          if (mapped) {
+            currentField = mapped[1];
+            const sameLineValue = headingLine ? headingLine[2].trim() : "";
+            if (sameLineValue) {
+              report[currentField] = report[currentField] === "NIL"
+                ? sameLineValue
+                : `${report[currentField]}\n${sameLineValue}`;
+            }
+            return;
+          }
+          if (!currentField) return;
+          report[currentField] = report[currentField] === "NIL"
+            ? line
+            : `${report[currentField]}\n${line}`;
+        });
+      report.reviewOfInvestigations = formatReviewOfInvestigationsText(report.reviewOfInvestigations);
+      report.currentMedication = numberPrescriptionText(report.currentMedication).replace(/\n(?!\d+\.)/g, "\n");
+      report.prescription = numberPrescriptionText(report.prescription);
+      return report;
     }
 
     function normalizeReplyLetterText(text) {
@@ -3324,6 +3440,103 @@
       return formatHtmlText(value);
     }
 
+    function isClinicalHeading(line) {
+      return /^(review of investigations?|current medications?|prescription|medications?|provisional diagnosis|treatment plan|advice|follow[- ]?up|investigations?|blood reports?)\s*:?\s*$/i.test(line.trim());
+    }
+
+    function normalizeClinicalHeading(line) {
+      return line.replace(/:$/, "").trim().replace(/\b\w/g, character => character.toUpperCase());
+    }
+
+    function splitClinicalBlocks(text) {
+      const blocks = [];
+      let current = { heading: "", lines: [] };
+      String(text || "")
+        .replace(/\r\n?/g, "\n")
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean)
+        .forEach(line => {
+          if (isClinicalHeading(line)) {
+            if (current.heading || current.lines.length) blocks.push(current);
+            current = { heading: normalizeClinicalHeading(line), lines: [] };
+            return;
+          }
+          current.lines.push(line);
+        });
+      if (current.heading || current.lines.length) blocks.push(current);
+      return blocks;
+    }
+
+    function investigationBlockHtml(lines) {
+      return lines.map(line => {
+        const cleanLine = line.replace(/^[-•]\s*/, "").trim();
+        const reportMatch = cleanLine.match(/^(\d+)\.\s*(.+)$/);
+        if (reportMatch) {
+          return `
+            <div class="clinical-report-title">
+              <span>${escapeHtml(reportMatch[1])}.</span>
+              <strong>${formatHtmlText(reportMatch[2])}</strong>
+            </div>
+          `;
+        }
+        return `
+          <div class="clinical-finding-row">
+            <span></span>
+            <div>${formatHtmlText(cleanLine)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function numberedTextBlockHtml(lines) {
+      return lines.map((line, index) => {
+        const match = line.match(/^(\d+)\.\s*(.+)$/);
+        return `
+          <div class="clinical-numbered-row">
+            <span>${escapeHtml(match ? match[1] : String(index + 1))}.</span>
+            <div>${formatHtmlText(match ? match[2] : line)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function structuredClinicalTextHtml(text) {
+      const blocks = splitClinicalBlocks(text);
+      if (!blocks.length) return formatHtmlText(text);
+      return blocks.map(block => {
+        const headingHtml = block.heading ? `<div class="clinical-heading">${escapeHtml(block.heading)}</div>` : "";
+        const lowerHeading = block.heading.toLowerCase();
+        if (/prescription|medications?/.test(lowerHeading) && /prescription/.test(lowerHeading)) {
+          const { medicines, instructions } = splitPrescriptionForTemplate(block.lines.join("\n"));
+          const medicineHtml = medicines.length
+            ? medicines.map((item, index) => `
+              <div class="rx-item clinical-rx-item">
+                <div class="rx-number">${escapeHtml(item.number || String(index + 1))}.</div>
+                <div class="rx-copy">${item.lines.map(formatMedicineLine).join("")}</div>
+              </div>
+            `).join("")
+            : formatHtmlText(block.lines.join("\n"));
+          const instructionHtml = instructions.length
+            ? `<div class="instruction-list clinical-instruction-list">${instructions.map((line, index) => `
+              <div class="instruction-item">
+                <div class="rx-number">${index + 1}.</div>
+                <div>${formatHtmlText(line)}</div>
+              </div>
+            `).join("")}</div>`
+            : "";
+          return `<div class="clinical-block">${headingHtml}<div class="rx-list clinical-rx-list">${medicineHtml}</div>${instructionHtml}</div>`;
+        }
+        if (/review of investigations?|investigations?|blood reports?/.test(lowerHeading)) {
+          return `<div class="clinical-block">${headingHtml}<div class="clinical-investigations">${investigationBlockHtml(block.lines)}</div></div>`;
+        }
+        if (/current medications?/.test(lowerHeading)) {
+          return `<div class="clinical-block">${headingHtml}<div class="clinical-numbered-list">${numberedTextBlockHtml(block.lines)}</div></div>`;
+        }
+        return `<div class="clinical-block">${headingHtml}<div>${formatHtmlText(block.lines.join("\n"))}</div></div>`;
+      }).join("");
+    }
+
     function visitNotePrintHtml(title, sections) {
       const metaItems = visitPatientMetaItems();
       const metaHtml = metaItems.length
@@ -3483,7 +3696,7 @@
         : sections.map(([heading, value]) => `
           <section>
             <h2>${escapeHtml(heading)}</h2>
-            <div class="content">${formatHtmlText(value)}</div>
+            <div class="content">${structuredClinicalTextHtml(value)}</div>
           </section>
         `).join("");
       const credentialsHtml = formatCredentialsHtml(getDoctorCredentials());
@@ -3530,11 +3743,25 @@
             #printPreview .rx-list,
             #printPreview .instruction-list { display: grid; gap: 14px; }
             #printPreview .rx-item,
-            #printPreview .instruction-item { display: grid; grid-template-columns: 28px 1fr; column-gap: 18px; color: #000000; font-size: 14px; line-height: 1.45; }
+            #printPreview .instruction-item { display: grid; grid-template-columns: 22px 1fr; column-gap: 10px; color: #000000; font-size: 14px; line-height: 1.45; }
             #printPreview .rx-number { font-weight: 800; }
             #printPreview .medicine-main strong { font-size: 15px; }
             #printPreview .medicine-instruction { margin-top: 2px; }
             #printPreview .medicine-malayalam { margin-top: 4px; font-size: 12px; }
+            #printPreview .clinical-block { margin: 0 0 20px; }
+            #printPreview .clinical-heading { margin: 20px 0 10px; color: #004270; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
+            #printPreview .clinical-block:first-child .clinical-heading { margin-top: 0; }
+            #printPreview .clinical-report-title,
+            #printPreview .clinical-numbered-row { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; margin: 0 0 4px; color: #111827; font-size: 15px; line-height: 1.45; }
+            #printPreview .clinical-report-title span,
+            #printPreview .clinical-numbered-row span { color: #111827; text-align: left; }
+            #printPreview .clinical-finding-row { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; margin: 1px 0; color: #111827; font-size: 15px; line-height: 1.45; }
+            #printPreview .clinical-finding-row div::before { content: "- "; }
+            #printPreview .clinical-rx-list { gap: 12px; }
+            #printPreview .clinical-rx-item,
+            #printPreview .visit-rx-item { grid-template-columns: 22px 1fr; column-gap: 8px; }
+            #printPreview .clinical-instruction-list,
+            #printPreview .visit-instruction-list { margin-top: 12px; gap: 6px; }
             #printPreview .template-divider { margin-top: 28px; border-top: 1px solid #9ca3af; }
             #printPreview .template-emergency { margin: 14px 0 0; color: #000000; font-size: 11px; line-height: 1.25; }
             #printPreview .print-credentials { margin-top: 5cm; padding-top: 0; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
@@ -3715,10 +3942,28 @@
       });
     }
 
+    function previewDictation() {
+      if (state.resultMode === "replyLetter") {
+        printDocument({ title: "Reply Letter", replyLetter: true, autoPrint: false });
+        return;
+      }
+      printDocument({
+        title: textResultTitle(),
+        sections: [[textResultTitle(), document.getElementById("dictationText").value.trim()]],
+        autoPrint: false
+      });
+    }
+
     function printPrescription() {
       const medicationBox = document.getElementById("prescriptionMedications");
       medicationBox.value = numberPrescriptionText(medicationBox.value);
       printDocument({ title: "Prescription", prescription: true });
+    }
+
+    function previewPrescription() {
+      const medicationBox = document.getElementById("prescriptionMedications");
+      medicationBox.value = numberPrescriptionText(medicationBox.value);
+      printDocument({ title: "Prescription", prescription: true, autoPrint: false });
     }
 
     function extractLineValue(text, labels) {
@@ -3769,7 +4014,7 @@
       }
       const fieldIds = ["prescriptionDate", "prescriptionName", "prescriptionAge", "prescriptionSex", "prescriptionUhid", "prescriptionMedications", "prescriptionCredentials"];
       const previous = Object.fromEntries(fieldIds.map(id => [id, document.getElementById(id).value]));
-      document.getElementById("prescriptionDate").value = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
+      document.getElementById("prescriptionDate").value = todayDisplayDate();
       document.getElementById("prescriptionName").value = extractLineValue(noteText, ["Name", "Patient Name"]);
       document.getElementById("prescriptionAge").value = extractLineValue(noteText, ["Age", "Patient Age"]);
       document.getElementById("prescriptionSex").value = extractLineValue(noteText, ["Sex", "Gender", "Patient Sex"]);
@@ -3784,6 +4029,33 @@
 
     function printMedicalCertificate() {
       printDocument({ title: "Medical Certificate", certificate: true });
+    }
+
+    function previewMedicalCertificate() {
+      printDocument({ title: "Medical Certificate", certificate: true, autoPrint: false });
+    }
+
+    function omitNilLines(text) {
+      return String(text || "")
+        .replace(/\r\n?/g, "\n")
+        .split("\n")
+        .map(line => line.trim())
+        .filter(line => line && !/^nil$/i.test(line) && !/:\s*nil$/i.test(line))
+        .join("\n");
+    }
+
+    async function copyButtonText(button, text, idleLabel) {
+      button.textContent = "Copied";
+      button.disabled = true;
+      setTimeout(() => {
+        button.textContent = idleLabel;
+        button.disabled = false;
+      }, 1400);
+      try {
+        await writeClipboardText(text);
+      } catch (error) {
+        console.warn("Copy failed:", error);
+      }
     }
 
     document.getElementById("copyButton").addEventListener("click", event => {
@@ -3824,57 +4096,54 @@
       if (event.target.id === "emailDialog") closeEmailDialog();
     });
 
-    document.getElementById("copyDictationButton").addEventListener("click", async event => {
-      const button = event.currentTarget;
-      const idleLabel = state.resultMode === "replyLetter"
-        ? "Copy Letter"
-        : state.resultMode === "visitPrescription"
-          ? "Copy Note"
-          : "Copy Dictation";
-      button.textContent = "Copied";
-      button.disabled = true;
-      setTimeout(() => {
-        button.textContent = idleLabel;
-        button.disabled = false;
-      }, 1400);
-      try {
-        await writeClipboardText(document.getElementById("dictationText").value.trim());
-      } catch (error) {
-        console.warn("Copy dictation failed:", error);
-      }
+    document.getElementById("copyDictationButton").addEventListener("click", event => {
+      copyButtonText(event.currentTarget, document.getElementById("dictationText").value.trim(), "Copy All");
+    });
+
+    document.getElementById("copyDictationWithoutNilButton").addEventListener("click", event => {
+      copyButtonText(event.currentTarget, omitNilLines(document.getElementById("dictationText").value.trim()), "Copy without NIL");
     });
 
     document.getElementById("copyPrescriptionButton").addEventListener("click", event => {
       const medicationBox = document.getElementById("prescriptionMedications");
       medicationBox.value = numberPrescriptionText(medicationBox.value);
       copyCaseSheet({
-        omitNil: true,
+        omitNil: false,
         button: event.currentTarget,
-        idleLabel: "Copy Prescription",
+        idleLabel: "Copy All",
         fields: prescriptionFields
       });
     });
 
-    document.getElementById("copyCertificateButton").addEventListener("click", async event => {
-      const button = event.currentTarget;
-      button.textContent = "Copied";
-      button.disabled = true;
-      setTimeout(() => {
-        button.textContent = "Copy Certificate";
-        button.disabled = false;
-      }, 1400);
-      try {
-        await writeClipboardText(certificatePlainText());
-      } catch (error) {
-        console.warn("Copy certificate failed:", error);
-      }
+    document.getElementById("copyPrescriptionWithoutNilButton").addEventListener("click", event => {
+      const medicationBox = document.getElementById("prescriptionMedications");
+      medicationBox.value = numberPrescriptionText(medicationBox.value);
+      copyCaseSheet({
+        omitNil: true,
+        button: event.currentTarget,
+        idleLabel: "Copy without NIL",
+        fields: prescriptionFields
+      });
+    });
+
+    document.getElementById("copyCertificateButton").addEventListener("click", event => {
+      copyButtonText(event.currentTarget, certificatePlainText(), "Copy All");
+    });
+
+    document.getElementById("copyCertificateWithoutNilButton").addEventListener("click", event => {
+      copyButtonText(event.currentTarget, omitNilLines(certificatePlainText()), "Copy without NIL");
     });
 
     document.getElementById("printVisitButton").addEventListener("click", printVisitNote);
+    document.getElementById("previewDictationButton").addEventListener("click", previewDictation);
     document.getElementById("printDictationButton").addEventListener("click", printDictation);
-    document.getElementById("printCombinedPrescriptionButton").addEventListener("click", printCombinedPrescription);
+    document.getElementById("emailDictationButton").addEventListener("click", openEmailDialog);
+    document.getElementById("previewPrescriptionButton").addEventListener("click", previewPrescription);
     document.getElementById("printPrescriptionButton").addEventListener("click", printPrescription);
+    document.getElementById("emailPrescriptionButton").addEventListener("click", openEmailDialog);
+    document.getElementById("previewCertificateButton").addEventListener("click", previewMedicalCertificate);
     document.getElementById("printCertificateButton").addEventListener("click", printMedicalCertificate);
+    document.getElementById("emailCertificateButton").addEventListener("click", openEmailDialog);
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, character => ({
