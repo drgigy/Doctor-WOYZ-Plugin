@@ -3903,6 +3903,34 @@
         #printPreview .visit-note-print .template-divider { border-top: 1px solid #6b7280; }
         #printPreview .visit-note-print .template-emergency { color: #111318; font-size: 10.5px; line-height: 1.25; }
         #printPreview .visit-note-print + .print-credentials { margin-top: 1.25cm; }
+        #printPreview .prescription-template { color: #111318; }
+        #printPreview .prescription-template .patient-name { margin: 0 0 8px; color: #111318; font-size: 24px; font-weight: 900; letter-spacing: -.01em; text-transform: uppercase; }
+        #printPreview .prescription-template .patient-meta { display: inline-block; margin: 0 0 24px; padding: 10px 14px; border-radius: 6px; background: #eef3f8; color: #111318; font-size: 13px; font-weight: 700; }
+        #printPreview .prescription-template h2 { margin: 0 0 12px; color: #003a63; font-size: 15px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+        #printPreview .prescription-template .rx-list + h2 { margin-top: 24px; }
+        #printPreview .prescription-template .rx-list { gap: 12px; }
+        #printPreview .prescription-template .rx-item,
+        #printPreview .prescription-template .instruction-item { grid-template-columns: 26px 1fr; column-gap: 12px; color: #111318; font-size: 14px; line-height: 1.42; }
+        #printPreview .prescription-template .rx-number { color: #111318; font-weight: 900; }
+        #printPreview .prescription-template .medicine-main strong { color: #111318; font-size: 15px; font-weight: 900; }
+        #printPreview .prescription-template .medicine-instruction { margin-top: 3px; color: #111318; font-size: 13px; }
+        #printPreview .prescription-template .medicine-malayalam { margin-top: 4px; color: #111318; font-size: 12.5px; }
+        #printPreview .prescription-template .instruction-list { gap: 6px; margin-top: 0; }
+        #printPreview .prescription-template .prescription-disclaimer { margin-top: 18px; }
+        #printPreview .prescription-template + .print-credentials { margin-top: 1.25cm; }
+        #printPreview .reply-letter { max-width: 100%; color: #111318; white-space: normal; font-size: 15px; line-height: 1.68; text-align: left; }
+        #printPreview .reply-to { margin: 0 0 6px; color: #003a63; font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+        #printPreview .reply-recipient { display: inline-block; margin: 0 0 22px; padding: 10px 14px; border-radius: 6px; background: #eef3f8; color: #111318; font-size: 13.5px; font-weight: 700; line-height: 1.45; }
+        #printPreview .reply-letter-body { margin-top: 0; color: #111318; }
+        #printPreview .reply-thanks { margin-top: 1.4em; color: #111318; font-weight: 700; }
+        #printPreview .reply-letter + .print-credentials,
+        #printPreview .reply-letter + .print-credentials.reply-credentials { margin-top: 1.25cm; }
+        #printPreview .certificate-page { padding-top: 18px; color: #111318; }
+        #printPreview .certificate-date { display: inline-block; float: right; margin: 0 0 34px 18px; padding: 8px 12px; border-radius: 6px; background: #eef3f8; color: #111318; font-size: 13px; font-weight: 700; }
+        #printPreview .certificate-title { clear: both; margin: 0 0 30px; color: #003a63; font-size: 20px; font-weight: 900; text-align: center; text-transform: uppercase; text-decoration: none; letter-spacing: .04em; }
+        #printPreview .certificate-body { clear: both; margin-top: 0; color: #111318; white-space: normal; font-size: 16px; line-height: 1.75; text-align: justify; }
+        #printPreview .certificate-thanks { margin-top: 36px; color: #111318; font-size: 15px; font-weight: 700; }
+        #printPreview .certificate-page + .print-credentials { margin-top: 1.25cm; }
         #printPreview .prescription-disclaimer { break-inside: avoid; margin-top: 22px; }
         #printPreview .template-divider { border-top: 1px solid #9ca3af; }
         #printPreview .template-emergency { margin: 10px 0 0; color: #000000; font-size: 10.5px; line-height: 1.25; max-width: 100%; }
@@ -3911,16 +3939,6 @@
         #printPreview .print-credentials .print-header-size-medium { font-size: 12px; }
         #printPreview .print-credentials .print-header-size-large { font-size: 14px; }
         #printPreview .print-credentials.reply-credentials { margin-top: 1.5cm; }
-        #printPreview .reply-letter { white-space: normal; font-size: 15px; line-height: 1.65; text-align: left; }
-        #printPreview .reply-to { margin-bottom: 4px; }
-        #printPreview .reply-recipient { margin-bottom: 18px; }
-        #printPreview .reply-letter-body { margin-top: 0; }
-        #printPreview .reply-thanks { margin-top: 1em; }
-        #printPreview .certificate-page { padding-top: 72px; }
-        #printPreview .certificate-date { text-align: right; margin-bottom: 48px; font-size: 15px; }
-        #printPreview .certificate-title { text-align: center; color: #111827; text-transform: uppercase; text-decoration: underline; letter-spacing: .04em; margin-bottom: 36px; font-size: 22px; }
-        #printPreview .certificate-body { white-space: normal; font-size: 16px; line-height: 1.8; text-align: justify; margin-top: 12px; }
-        #printPreview .certificate-thanks { margin-top: 42px; font-size: 15px; }
         @media (max-width: 720px) {
           #printPreview .print-toolbar { padding: 12px 14px; }
           #printPreview .print-page { width: min(96vw, 720px) !important; }
