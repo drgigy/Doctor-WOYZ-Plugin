@@ -103,25 +103,65 @@ function buildPdfLines(payload) {
   return lines.filter((line, index, all) => !(line === "" && all[index - 1] === ""));
 }
 
+function isMalayalamCharacter(character) {
+  return /[\u0D00-\u0D7F]/u.test(character);
+}
+
+function nextNonSpaceIsMalayalam(text, startIndex) {
+  for (let index = startIndex; index < text.length; index += 1) {
+    const character = text[index];
+    if (!/\s/u.test(character)) return isMalayalamCharacter(character);
+  }
+  return false;
+}
+
+function splitScriptRuns(text) {
+  const runs = [];
+  let current = "";
+  let currentMalayalam = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const characterMalayalam = isMalayalamCharacter(character)
+      || (/[\s\u200C\u200D]/u.test(character) && (currentMalayalam || nextNonSpaceIsMalayalam(text, index + 1)));
+    if (current && characterMalayalam !== currentMalayalam) {
+      runs.push({ text: current, malayalam: currentMalayalam });
+      current = "";
+    }
+    current += character;
+    currentMalayalam = characterMalayalam;
+  }
+  if (current) runs.push({ text: current, malayalam: currentMalayalam });
+  return runs;
+}
+
+function usePdfFont(doc, malayalam, bold) {
+  doc.font(malayalam ? (bold ? "NotoMalayalamBold" : "NotoMalayalam") : (bold ? "Helvetica-Bold" : "Helvetica"));
+  if (malayalam && doc._font?.font?._tables) {
+    // FontKit crashes on some Malayalam GPOS anchors. Disabling GPOS keeps the
+    // text renderable instead of failing the whole email send.
+    doc._font.font._tables.GPOS = null;
+  }
+}
+
 function writePdfLine(doc, line) {
   if (!line) {
     doc.moveDown(0.45);
     return;
   }
   const isHeading = /^[A-Z0-9 /+().:-]+$/.test(line) && line.length < 80;
-  doc.font(isHeading ? "NotoMalayalamBold" : "NotoMalayalam");
-  if (doc._font?.font?._tables) {
-    // FontKit crashes on some Malayalam GPOS anchors. Disabling GPOS keeps the
-    // text renderable instead of failing the whole email send.
-    doc._font.font._tables.GPOS = null;
-  }
-  doc
-    .fontSize(isHeading ? 12 : 10.5)
-    .fillColor(isHeading ? "#004270" : "#111827")
-    .text(line, {
+  const runs = splitScriptRuns(line);
+  const baseOptions = {
       width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
       lineGap: isHeading ? 2 : 1
+  };
+  doc.fontSize(isHeading ? 12 : 10.5).fillColor(isHeading ? "#004270" : "#111827");
+  runs.forEach((run, index) => {
+    usePdfFont(doc, run.malayalam, isHeading);
+    doc.text(run.text, {
+      ...baseOptions,
+      continued: index < runs.length - 1
     });
+  });
   doc.moveDown(isHeading ? 0.35 : 0.2);
 }
 
