@@ -3736,16 +3736,29 @@
       return { medicines, instructions };
     }
 
+    function cleanMedicineInstructionPrefix(value) {
+      const cleaned = String(value || "")
+        .replace(/^\s*[-–—,]\s*/, "")
+        .replace(/^take\s+/i, "")
+        .trim();
+      return cleaned.replace(/^[a-z]/, character => character.toUpperCase());
+    }
+
     function formatMedicineLine(line, index) {
       const escaped = formatHtmlText(line);
       if (index > 0) {
         const lineClass = /[\u0D00-\u0D7F]/.test(line) ? "medicine-malayalam" : "medicine-instruction";
         return `<div class="${lineClass}">${escaped}</div>`;
       }
-      const separator = line.search(/\s[-–—]\s|,\s*(?:take|use|apply|instill|continue)\b/i);
-      if (separator > 0) {
+      const separators = [
+        line.search(/\s[-–—]\s/),
+        line.search(/,\s*(?:take|use|apply|instill|continue)\b/i),
+        instructionStartIndex(line)
+      ].filter(separatorIndex => separatorIndex > 0);
+      if (separators.length) {
+        const separator = Math.min(...separators);
         const prefix = line.slice(0, separator).trim();
-        const suffix = line.slice(separator).replace(/^\s*[-–—,]\s*/, "").trim();
+        const suffix = cleanMedicineInstructionPrefix(line.slice(separator));
         return `<div class="medicine-main"><strong>${formatHtmlText(prefix)}</strong>${suffix ? `<div class="medicine-instruction">${formatHtmlText(suffix)}</div>` : ""}</div>`;
       }
       return `<div class="medicine-main"><strong>${escaped}</strong></div>`;
