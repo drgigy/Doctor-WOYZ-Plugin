@@ -3669,6 +3669,7 @@
             </section>
           `).join("")}
         </div>
+        ${sections.some(([heading]) => /prescription/i.test(heading)) ? prescriptionFooterHtml() : ""}
       `;
     }
 
@@ -3717,11 +3718,15 @@
       return `<div class="medicine-main"><strong>${escaped}</strong></div>`;
     }
 
+    function prescriptionFooterHtml() {
+      const footnote = getPrescriptionFootnote();
+      return footnote ? `<div class="template-divider"></div><p class="template-emergency">${formatHtmlText(footnote)}</p>` : "";
+    }
+
     function prescriptionPrintHtml() {
       const nameValue = document.getElementById("prescriptionName").value.trim();
       const patientName = nameValue && nameValue.toUpperCase() !== "NIL" ? nameValue.toUpperCase() : "NIL";
       const { medicines, instructions } = splitPrescriptionForTemplate(document.getElementById("prescriptionMedications").value.trim());
-      const footnote = getPrescriptionFootnote();
       const medicineHtml = medicines.length
         ? medicines.map((item, index) => `
           <div class="rx-item">
@@ -3745,7 +3750,7 @@
           <h2>Rx / ADVICE</h2>
           <div class="rx-list">${medicineHtml}</div>
           ${instructionHtml ? `<h2>Instructions</h2><div class="instruction-list">${instructionHtml}</div>` : ""}
-          ${footnote ? `<div class="template-divider"></div><p class="template-emergency">${formatHtmlText(footnote)}</p>` : ""}
+          ${prescriptionFooterHtml()}
         </div>
       `;
     }
