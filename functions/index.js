@@ -230,13 +230,15 @@ async function makePdfFromHtml(html) {
   });
   try {
     const page = await browser.newPage();
+    await page.setViewport({ width: 980, height: 1320, deviceScaleFactor: 1 });
     await page.setJavaScriptEnabled(false);
     await page.setContent(injectPdfFonts(html), { waitUntil: "load" });
-    await page.emulateMediaType("print");
+    await page.emulateMediaType("screen");
     const pdf = await page.pdf({
-      format: "A4",
+      width: "980px",
+      height: "1320px",
       printBackground: true,
-      preferCSSPageSize: true,
+      preferCSSPageSize: false,
       margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" }
     });
     return Buffer.from(pdf);

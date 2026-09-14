@@ -3820,7 +3820,7 @@
 
     function printPreviewCss() {
       return `
-        @page { size: A4; margin: 0; }
+        @page { size: 980px 1320px; margin: 0; }
         html, body { margin: 0; padding: 0; background: #ffffff; }
         #printPreview { position: fixed; inset: 0; z-index: 10000; overflow: auto; background: rgba(15, 23, 42, .58); color: #111827; font-family: Arial, sans-serif; line-height: 1.45; padding: 0 0 34px; box-sizing: border-box; }
         #printPreview[hidden] { display: none !important; }
@@ -3829,6 +3829,9 @@
         #printPreview .print-toolbar .back-button { background: #ff4545; color: #ffffff; box-shadow: 0 10px 24px rgba(255, 69, 69, .18); }
         #printPreview .print-page { display: block !important; width: min(96vw, 980px) !important; max-width: none !important; min-height: 0 !important; background: #ffffff; margin: 0 auto; padding: 0 !important; box-sizing: border-box; box-shadow: 0 26px 80px rgba(0, 0, 0, .32); }
         #printPreview .print-template { min-height: 1320px; background: #ffffff; display: flex; flex-direction: column; }
+        #printPreview.email-render { display: block !important; position: static !important; overflow: visible !important; background: #ffffff !important; padding: 0 !important; }
+        #printPreview.email-render .print-page { width: 980px !important; margin: 0 !important; box-shadow: none !important; }
+        #printPreview.email-render .print-template { min-height: 1320px !important; }
         #printPreview .template-header { min-height: 118px; background: #e8edf3; color: #000000; padding: 28px 44px; box-sizing: border-box; white-space: normal; line-height: 1.22; font-size: 18px; font-weight: 400; }
         #printPreview .template-header .print-header-size-small { font-size: 18px; }
         #printPreview .template-header .print-header-size-medium { font-size: 24px; }
@@ -3914,7 +3917,7 @@
             <style>${printPreviewCss()}</style>
           </head>
           <body>
-            <section id="printPreview">
+            <section id="printPreview" class="email-render">
               <main class="print-page">${printDocumentBodyHtml(options)}</main>
             </section>
           </body>
