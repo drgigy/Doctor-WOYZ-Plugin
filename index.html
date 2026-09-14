@@ -2000,6 +2000,10 @@
             <h3>11. Treatment Plan</h3>
             <textarea id="treatmentPlan">Awaiting generated treatment plan.</textarea>
           </div>
+          <div class="section full">
+            <h3>12. Prescription</h3>
+            <textarea id="prescription">NIL</textarea>
+          </div>
         </div>
         <div class="dictation-result" id="dictationResult">
           <div class="section full">
@@ -2830,14 +2834,16 @@
             historyOfPresentIllness: "History of Present Illness",
             examinationFindings: "Physical Examination",
             provisionalDiagnosis: "Diagnosis",
-            treatmentPlan: "Orders"
+            treatmentPlan: "Orders",
+            prescription: "Prescription"
           }
         : {
             presentingComplaint: "1. Presenting Complaint",
             historyOfPresentIllness: "2. History of Present Illness",
             examinationFindings: "7. Examination Findings",
             provisionalDiagnosis: "10. Provisional Diagnosis",
-            treatmentPlan: "11. Treatment Plan"
+            treatmentPlan: "11. Treatment Plan",
+            prescription: "12. Prescription"
           };
       Object.entries(labels).forEach(([id, label]) => {
         const heading = document.getElementById(id).closest(".section").querySelector("h3");
@@ -2861,6 +2867,7 @@
       document.getElementById("currentMedication").value = data.currentMedication || "NIL";
       document.getElementById("provisionalDiagnosis").value = data.provisionalDiagnosis || "NIL";
       document.getElementById("treatmentPlan").value = data.treatmentPlan || "NIL";
+      document.getElementById("prescription").value = numberPrescriptionText(data.prescription || "NIL");
     }
 
     function resetScribe() {
@@ -3008,7 +3015,8 @@
       ["Review of Investigations", "reviewOfInvestigations"],
       ["Current Medication", "currentMedication"],
       ["Provisional Diagnosis", "provisionalDiagnosis"],
-      ["Treatment Plan", "treatmentPlan"]
+      ["Treatment Plan", "treatmentPlan"],
+      ["Prescription", "prescription"]
     ];
 
     const visitDictationFields = [
@@ -3023,7 +3031,8 @@
       ["Review of Investigations", "reviewOfInvestigations"],
       ["Allergies", "allergies"],
       ["Current Medications", "currentMedication"],
-      ["Orders", "treatmentPlan"]
+      ["Orders", "treatmentPlan"],
+      ["Prescription", "prescription"]
     ];
 
     const prescriptionFields = [
@@ -3426,7 +3435,7 @@
       `;
     }
 
-    function printDocument({ title, sections, prescription = false, certificate = false, replyLetter = false, visitNote = false }) {
+    function printDocument({ title, sections, prescription = false, certificate = false, replyLetter = false, visitNote = false, autoPrint = true }) {
       const body = certificate
         ? `
           <div class="certificate-page">
@@ -3467,18 +3476,18 @@
         printPreview.hidden = true;
         printPreview.innerHTML = `
           <style>
-            #printPreview { position: fixed; inset: 0; z-index: 10000; overflow: auto; background: #ffffff; color: #111827; font-family: Arial, sans-serif; line-height: 1.45; }
+            #printPreview { position: fixed; inset: 0; z-index: 10000; overflow: auto; background: rgba(15, 23, 42, .58); color: #111827; font-family: Arial, sans-serif; line-height: 1.45; padding: 0 0 34px; box-sizing: border-box; }
             #printPreview[hidden] { display: none !important; }
-            #printPreview .print-toolbar { display: flex; gap: 12px; align-items: center; padding: 16px 36px; background: #ffffff; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; }
+            #printPreview .print-toolbar { display: flex; gap: 12px; align-items: center; justify-content: flex-end; width: min(96vw, 980px); margin: 18px auto 12px; padding: 12px 0; background: transparent; position: sticky; top: 0; z-index: 10; }
             #printPreview .print-toolbar button { border: 1px solid #ff4545; border-radius: 12px; background: #ffffff; color: #d12626; cursor: pointer; font: 700 15px Arial, sans-serif; padding: 10px 16px; }
             #printPreview .print-toolbar .back-button { background: #ff4545; color: #ffffff; box-shadow: 0 10px 24px rgba(255, 69, 69, .18); }
-            #printPreview .print-page { display: block !important; width: auto !important; max-width: none !important; min-height: 0 !important; background: #ffffff; margin: 0; padding: 0 !important; box-sizing: border-box; }
-            #printPreview .print-template { min-height: 100vh; background: #ffffff; }
+            #printPreview .print-page { display: block !important; width: min(96vw, 980px) !important; max-width: none !important; min-height: 0 !important; background: #ffffff; margin: 0 auto; padding: 0 !important; box-sizing: border-box; box-shadow: 0 26px 80px rgba(0, 0, 0, .32); }
+            #printPreview .print-template { min-height: 1320px; background: #ffffff; display: flex; flex-direction: column; }
             #printPreview .template-header { min-height: 118px; background: #e8edf3; color: #000000; padding: 28px 44px; box-sizing: border-box; white-space: normal; line-height: 1.22; font-size: 18px; font-weight: 400; }
             #printPreview .template-header .print-header-size-small { font-size: 18px; }
             #printPreview .template-header .print-header-size-medium { font-size: 24px; }
             #printPreview .template-header .print-header-size-large { font-size: 30px; }
-            #printPreview .template-content { padding: 28px 44px 0; box-sizing: border-box; }
+            #printPreview .template-content { flex: 1; padding: 28px 44px 32px; box-sizing: border-box; display: flex; flex-direction: column; }
             #printPreview h1 { margin: 0 0 18px; color: #111827; font-size: 26px; }
             #printPreview h2 { margin: 22px 0 12px; color: #004270; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
             #printPreview section { break-inside: avoid; margin-bottom: 12px; }
@@ -3501,7 +3510,7 @@
             #printPreview .medicine-malayalam { margin-top: 4px; font-size: 12px; }
             #printPreview .template-divider { margin-top: 28px; border-top: 1px solid #9ca3af; }
             #printPreview .template-emergency { margin: 14px 0 0; color: #000000; font-size: 11px; line-height: 1.25; }
-            #printPreview .print-credentials { margin-top: 3cm; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
+            #printPreview .print-credentials { margin-top: auto; padding-top: 3cm; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
             #printPreview .print-credentials.reply-credentials { margin-top: 3cm; }
             #printPreview .reply-letter { white-space: normal; font-size: 15px; line-height: 1.65; text-align: left; }
             #printPreview .reply-to { margin-bottom: 4px; }
@@ -3515,14 +3524,16 @@
             #printPreview .certificate-thanks { margin-top: 42px; font-size: 15px; }
             @media (max-width: 720px) {
               #printPreview .print-toolbar { padding: 12px 14px; }
-              #printPreview .template-content { padding: 18px 18px 0; }
+              #printPreview .print-page { width: min(96vw, 720px) !important; }
+              #printPreview .print-template { min-height: 980px; }
+              #printPreview .template-content { padding: 18px 18px 24px; }
               #printPreview .visit-meta-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             }
             @media print {
               body > *:not(#printPreview) { display: none !important; }
-              #printPreview { display: block !important; position: static !important; overflow: visible !important; }
+              #printPreview { display: block !important; position: static !important; overflow: visible !important; background: #ffffff !important; padding: 0 !important; }
               #printPreview .print-toolbar { display: none !important; }
-              #printPreview .print-page { margin: 0 !important; }
+              #printPreview .print-page { margin: 0 !important; width: auto !important; box-shadow: none !important; }
               #printPreview .print-template { min-height: 100vh; }
               #printPreview .template-header { padding: 10mm 12mm; min-height: 34mm; }
               #printPreview .template-content { padding: 8mm 12mm 0; }
@@ -3553,6 +3564,22 @@
       printPreview.hidden = false;
       document.body.style.overflow = "hidden";
       printPreview.scrollTop = 0;
+      if (autoPrint) {
+        const closeAfterPrint = () => {
+          printPreview.hidden = true;
+          document.body.style.overflow = "";
+          window.removeEventListener("afterprint", closeAfterPrint);
+        };
+        window.addEventListener("afterprint", closeAfterPrint);
+        setTimeout(() => {
+          if (window.AndroidPrint && typeof window.AndroidPrint.print === "function") {
+            window.AndroidPrint.print(printPreview.dataset.title || "Doctor WOYZ");
+            closeAfterPrint();
+          } else {
+            window.print();
+          }
+        }, 80);
+      }
     }
 
     function printVisitNote() {
@@ -3748,8 +3775,14 @@
       }, 1400);
     }
 
-    document.getElementById("previewVisitButton").addEventListener("click", event => {
-      showPendingAction(event.currentTarget, "Preview");
+    document.getElementById("previewVisitButton").addEventListener("click", () => {
+      const fields = activeVisitFields();
+      const patientIds = new Set(["patientName", "patientAge", "patientSex", "patientUhid"]);
+      const sections = fields
+        .filter(([, id]) => !patientIds.has(id))
+        .map(([title, id]) => [title, document.getElementById(id).value.trim()])
+        .filter(([, value]) => value && value.toUpperCase() !== "NIL");
+      printDocument({ title: "Visit Note", sections, visitNote: true, autoPrint: false });
     });
 
     document.getElementById("emailVisitButton").addEventListener("click", openEmailDialog);

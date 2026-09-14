@@ -13,7 +13,8 @@ const REPORT_FIELDS = [
   "reviewOfInvestigations",
   "currentMedication",
   "provisionalDiagnosis",
-  "treatmentPlan"
+  "treatmentPlan",
+  "prescription"
 ];
 
 const REPORT_FIELD_DESCRIPTIONS = {
@@ -31,7 +32,8 @@ const REPORT_FIELD_DESCRIPTIONS = {
   reviewOfInvestigations: "Only investigation reports and values explicitly spoken, otherwise NIL.",
   currentMedication: "Only medicines described as already being taken, one numbered medicine per line, otherwise NIL.",
   provisionalDiagnosis: "Most likely working or provisional diagnosis clearly supported by the complete consultation, investigation review, or doctor assessment. It need not be introduced by the words provisional diagnosis. Do not guess from isolated symptoms, medications, or general medical knowledge. Use NIL when unsupported.",
-  treatmentPlan: "Plan, prescription, advice, orders, referral, follow-up, monitoring, reassurance, or conservative management clearly supported by the consultation. It need not be introduced by the words treatment plan. Never invent drug changes, doses, procedures, investigations, or follow-up, and never copy current medicines as new advice. Use NIL when unsupported."
+  treatmentPlan: "Plan, advice, orders, referral, follow-up, monitoring, reassurance, or conservative management clearly supported by the consultation. It need not be introduced by the words treatment plan. Do not put explicitly dictated prescription medicines here; use prescription. Never invent drug changes, procedures, investigations, or follow-up. Use NIL when unsupported.",
+  prescription: "Only medicines explicitly dictated as prescription, newly prescribed, started, changed, or explicitly continued as a prescription. Use numbered medicine entries with medicine name and dose, English patient instruction, and Malayalam translation below. Use NIL when unsupported."
 };
 
 const REPORT_SCHEMA = {
@@ -124,6 +126,7 @@ function buildVisitNotePrompt(mode = "ambient") {
 - allergies: Allergies.
 - currentMedication: Current Medications.
 - treatmentPlan: Orders / Advice / Follow-up.
+- prescription: Prescription.
 - Use NIL for pastMedicalHistory, familyHistory, and personalHistory unless the
   doctor explicitly dictates them.`
     : "";
@@ -153,8 +156,9 @@ Output fields:
 - reviewOfInvestigations: Review of Investigations.
 - currentMedication: Current Medications.
 - provisionalDiagnosis: Diagnosis.
-- treatmentPlan: Orders, advice, follow-up, investigations ordered, medication
-  plan, referral, or review plan.
+- treatmentPlan: Orders, advice, follow-up, investigations ordered, referral,
+  or review plan.
+- prescription: Explicitly dictated prescription medicines.
 
 Rules:
 - Return only the requested JSON object.
@@ -178,10 +182,15 @@ Rules:
 - Do not infer a diagnosis from a medicine, investigation, or general medical
   knowledge.
 - Current medicines must go in currentMedication.
-- Newly advised medicines, changed medicines, investigations ordered, review
-  instructions, and follow-up advice must go in treatmentPlan.
-- Do not duplicate currentMedication into treatmentPlan unless the doctor
-  explicitly says to continue, change, stop, or prescribe it.
+- Newly ordered investigations, review instructions, and follow-up advice must
+  go in treatmentPlan.
+- Newly prescribed medicines, changed medicines, and medicines explicitly
+  introduced by the doctor as "prescription", "Rx", "prescribe", "start",
+  "continue as prescription", or equivalent wording must go in prescription.
+- Do not duplicate currentMedication into treatmentPlan. If the doctor
+  explicitly says to continue, change, stop, start, or prescribe a medicine,
+  put that medicine action in prescription.
+- Do not duplicate prescription medicines into treatmentPlan.
 
 Formatting rules:
 - presentingComplaint: each complaint on a separate line.
@@ -194,7 +203,15 @@ Formatting rules:
 - currentMedication: numbered list, one medicine per line, with dose and
   frequency if dictated.
 - provisionalDiagnosis: one diagnosis per line.
-- treatmentPlan: one advice/order/medicine/follow-up item per line.
+- treatmentPlan: one advice/order/follow-up item per line.
+- prescription: numbered list. For each medicine, write the medicine name and
+  dose on the numbered line. On the next line write the English patient
+  instruction exactly as dictated, for example "Take one tablet at bedtime for
+  one month." On the next line write the Malayalam translation of that
+  instruction only. Do not repeat the medicine name in the Malayalam line.
+  Preserve brand names and doses exactly in English. If dose is not dictated,
+  still include the medicine name. Do not invent dose, route, frequency, or
+  duration.
 - If investigations, lab tests, imaging, EEG, NCS, scans, or follow-up tests
   are ordered, include them in treatmentPlan line by line.
 
@@ -756,6 +773,7 @@ function extractReport(payload) {
   report.reviewOfInvestigations = formatReviewOfInvestigations(normalizeBloodUnits(report.reviewOfInvestigations));
   report.currentMedication = formatCurrentMedication(report.currentMedication);
   report.treatmentPlan = formatTreatmentPlan(report.treatmentPlan);
+  report.prescription = numberPrescriptionItems(report.prescription);
   return sanitizeTreatmentPlan(report);
 }
 
