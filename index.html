@@ -3740,7 +3740,7 @@
       `;
     }
 
-    function printDocument({ title, sections, prescription = false, certificate = false, replyLetter = false, visitNote = false, autoPrint = true }) {
+    function printDocumentBodyHtml({ title, sections = [], prescription = false, certificate = false, replyLetter = false, visitNote = false }) {
       const body = certificate
         ? `
           <div class="certificate-page">
@@ -3768,12 +3768,120 @@
       const credentialsBlock = credentialsHtml ? `<div class="print-credentials ${replyLetter ? "reply-credentials" : ""}">${credentialsHtml}</div>` : "";
       const headerSettings = getPrintHeaderSettings();
       const printableContent = `${prescription || certificate || replyLetter || visitNote ? body : `<h1>${escapeHtml(title)}</h1>${body}`}${credentialsBlock}`;
-      const printableBody = `
+      return `
         <div class="print-template">
           <div class="template-header">${formatPrintHeaderHtml(headerSettings)}</div>
           <div class="template-content">${printableContent}</div>
         </div>
       `;
+    }
+
+    function printPreviewCss() {
+      return `
+        @page { size: A4; margin: 0; }
+        html, body { margin: 0; padding: 0; background: #ffffff; }
+        #printPreview { position: fixed; inset: 0; z-index: 10000; overflow: auto; background: rgba(15, 23, 42, .58); color: #111827; font-family: Arial, sans-serif; line-height: 1.45; padding: 0 0 34px; box-sizing: border-box; }
+        #printPreview[hidden] { display: none !important; }
+        #printPreview .print-toolbar { display: flex; gap: 12px; align-items: center; justify-content: flex-end; width: min(96vw, 980px); margin: 18px auto 12px; padding: 12px 0; background: transparent; position: sticky; top: 0; z-index: 10; }
+        #printPreview .print-toolbar button { border: 1px solid #ff4545; border-radius: 12px; background: #ffffff; color: #d12626; cursor: pointer; font: 700 15px Arial, sans-serif; padding: 10px 16px; }
+        #printPreview .print-toolbar .back-button { background: #ff4545; color: #ffffff; box-shadow: 0 10px 24px rgba(255, 69, 69, .18); }
+        #printPreview .print-page { display: block !important; width: min(96vw, 980px) !important; max-width: none !important; min-height: 0 !important; background: #ffffff; margin: 0 auto; padding: 0 !important; box-sizing: border-box; box-shadow: 0 26px 80px rgba(0, 0, 0, .32); }
+        #printPreview .print-template { min-height: 1320px; background: #ffffff; display: flex; flex-direction: column; }
+        #printPreview .template-header { min-height: 118px; background: #e8edf3; color: #000000; padding: 28px 44px; box-sizing: border-box; white-space: normal; line-height: 1.22; font-size: 18px; font-weight: 400; }
+        #printPreview .template-header .print-header-size-small { font-size: 18px; }
+        #printPreview .template-header .print-header-size-medium { font-size: 24px; }
+        #printPreview .template-header .print-header-size-large { font-size: 30px; }
+        #printPreview .template-content { flex: 1; padding: 28px 44px 32px; box-sizing: border-box; display: flex; flex-direction: column; }
+        #printPreview h1 { margin: 0 0 18px; color: #111827; font-size: 26px; }
+        #printPreview h2 { margin: 22px 0 12px; color: #004270; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
+        #printPreview section { break-inside: avoid; margin-bottom: 12px; }
+        #printPreview .content { white-space: normal; font-size: 15px; }
+        #printPreview .visit-note-title { margin-bottom: 14px; font-size: 24px; }
+        #printPreview .visit-meta-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #f8fafc; }
+        #printPreview .visit-meta-item { min-width: 0; display: flex; gap: 6px; align-items: baseline; font-size: 13px; color: #111827; }
+        #printPreview .visit-meta-item span { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+        #printPreview .visit-meta-item strong { overflow-wrap: anywhere; font-weight: 800; }
+        #printPreview .visit-note-sections h2:first-child { margin-top: 12px; }
+        #printPreview .patient-name { margin: 0 0 8px; color: #000000; font-size: 22px; font-weight: 900; text-transform: uppercase; }
+        #printPreview .patient-meta { margin-bottom: 24px; color: #000000; font-size: 13px; }
+        #printPreview .rx-list,
+        #printPreview .instruction-list { display: grid; gap: 14px; }
+        #printPreview .rx-item,
+        #printPreview .instruction-item { display: grid; grid-template-columns: 22px 1fr; column-gap: 10px; color: #000000; font-size: 14px; line-height: 1.45; }
+        #printPreview .rx-number { font-weight: 800; }
+        #printPreview .medicine-main strong { font-size: 15px; }
+        #printPreview .medicine-instruction { margin-top: 2px; }
+        #printPreview .medicine-malayalam { margin-top: 4px; font-size: 12px; }
+        #printPreview .clinical-block { margin: 0 0 20px; }
+        #printPreview .clinical-heading { margin: 20px 0 10px; color: #004270; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
+        #printPreview .clinical-block:first-child .clinical-heading { margin-top: 0; }
+        #printPreview .clinical-report-title,
+        #printPreview .clinical-numbered-row { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; margin: 0 0 4px; color: #111827; font-size: 15px; line-height: 1.45; }
+        #printPreview .clinical-report-title span,
+        #printPreview .clinical-numbered-row span { color: #111827; text-align: left; }
+        #printPreview .clinical-investigations { margin-left: 0; }
+        #printPreview .clinical-finding-row { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; margin: 1px 0 1px 30px; color: #111827; font-size: 15px; line-height: 1.45; }
+        #printPreview .clinical-finding-row div::before { content: "- "; }
+        #printPreview .clinical-rx-list { gap: 12px; }
+        #printPreview .clinical-rx-item,
+        #printPreview .visit-rx-item { grid-template-columns: 22px 1fr; column-gap: 8px; }
+        #printPreview .clinical-instruction-list,
+        #printPreview .visit-instruction-list { margin-top: 12px; gap: 6px; }
+        #printPreview .template-divider { margin-top: 28px; border-top: 1px solid #9ca3af; }
+        #printPreview .template-emergency { margin: 14px 0 0; color: #000000; font-size: 11px; line-height: 1.25; }
+        #printPreview .print-credentials { margin-top: 5cm; padding-top: 0; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
+        #printPreview .print-credentials .print-header-size-small { font-size: 11px; }
+        #printPreview .print-credentials .print-header-size-medium { font-size: 12px; }
+        #printPreview .print-credentials .print-header-size-large { font-size: 14px; }
+        #printPreview .print-credentials.reply-credentials { margin-top: 5cm; }
+        #printPreview .reply-letter { white-space: normal; font-size: 15px; line-height: 1.65; text-align: left; }
+        #printPreview .reply-to { margin-bottom: 4px; }
+        #printPreview .reply-recipient { margin-bottom: 18px; }
+        #printPreview .reply-letter-body { margin-top: 0; }
+        #printPreview .reply-thanks { margin-top: 1em; }
+        #printPreview .certificate-page { padding-top: 72px; }
+        #printPreview .certificate-date { text-align: right; margin-bottom: 48px; font-size: 15px; }
+        #printPreview .certificate-title { text-align: center; color: #111827; text-transform: uppercase; text-decoration: underline; letter-spacing: .04em; margin-bottom: 36px; font-size: 22px; }
+        #printPreview .certificate-body { white-space: normal; font-size: 16px; line-height: 1.8; text-align: justify; margin-top: 12px; }
+        #printPreview .certificate-thanks { margin-top: 42px; font-size: 15px; }
+        @media (max-width: 720px) {
+          #printPreview .print-toolbar { padding: 12px 14px; }
+          #printPreview .print-page { width: min(96vw, 720px) !important; }
+          #printPreview .print-template { min-height: 980px; }
+          #printPreview .template-content { padding: 18px 18px 24px; }
+          #printPreview .visit-meta-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media print {
+          body > *:not(#printPreview) { display: none !important; }
+          #printPreview { display: block !important; position: static !important; overflow: visible !important; background: #ffffff !important; padding: 0 !important; }
+          #printPreview .print-toolbar { display: none !important; }
+          #printPreview .print-page { margin: 0 !important; width: auto !important; box-shadow: none !important; }
+          #printPreview .print-template { min-height: 100vh; }
+          #printPreview .template-header { padding: 10mm 12mm; min-height: 34mm; }
+          #printPreview .template-content { padding: 8mm 12mm 0; }
+          #printPreview .visit-meta-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+      `;
+    }
+
+    function printableEmailHtml(options) {
+      return `<!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>${printPreviewCss()}</style>
+          </head>
+          <body>
+            <section id="printPreview">
+              <main class="print-page">${printDocumentBodyHtml(options)}</main>
+            </section>
+          </body>
+        </html>`;
+    }
+
+    function printDocument(options) {
+      const { title, autoPrint = true } = options;
+      const printableBody = printDocumentBodyHtml(options);
       let printPreview = document.getElementById("printPreview");
       if (!printPreview) {
         printPreview = document.createElement("section");
@@ -3781,87 +3889,7 @@
         printPreview.hidden = true;
         printPreview.innerHTML = `
           <style>
-            #printPreview { position: fixed; inset: 0; z-index: 10000; overflow: auto; background: rgba(15, 23, 42, .58); color: #111827; font-family: Arial, sans-serif; line-height: 1.45; padding: 0 0 34px; box-sizing: border-box; }
-            #printPreview[hidden] { display: none !important; }
-            #printPreview .print-toolbar { display: flex; gap: 12px; align-items: center; justify-content: flex-end; width: min(96vw, 980px); margin: 18px auto 12px; padding: 12px 0; background: transparent; position: sticky; top: 0; z-index: 10; }
-            #printPreview .print-toolbar button { border: 1px solid #ff4545; border-radius: 12px; background: #ffffff; color: #d12626; cursor: pointer; font: 700 15px Arial, sans-serif; padding: 10px 16px; }
-            #printPreview .print-toolbar .back-button { background: #ff4545; color: #ffffff; box-shadow: 0 10px 24px rgba(255, 69, 69, .18); }
-            #printPreview .print-page { display: block !important; width: min(96vw, 980px) !important; max-width: none !important; min-height: 0 !important; background: #ffffff; margin: 0 auto; padding: 0 !important; box-sizing: border-box; box-shadow: 0 26px 80px rgba(0, 0, 0, .32); }
-            #printPreview .print-template { min-height: 1320px; background: #ffffff; display: flex; flex-direction: column; }
-            #printPreview .template-header { min-height: 118px; background: #e8edf3; color: #000000; padding: 28px 44px; box-sizing: border-box; white-space: normal; line-height: 1.22; font-size: 18px; font-weight: 400; }
-            #printPreview .template-header .print-header-size-small { font-size: 18px; }
-            #printPreview .template-header .print-header-size-medium { font-size: 24px; }
-            #printPreview .template-header .print-header-size-large { font-size: 30px; }
-            #printPreview .template-content { flex: 1; padding: 28px 44px 32px; box-sizing: border-box; display: flex; flex-direction: column; }
-            #printPreview h1 { margin: 0 0 18px; color: #111827; font-size: 26px; }
-            #printPreview h2 { margin: 22px 0 12px; color: #004270; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
-            #printPreview section { break-inside: avoid; margin-bottom: 12px; }
-            #printPreview .content { white-space: normal; font-size: 15px; }
-            #printPreview .visit-note-title { margin-bottom: 14px; font-size: 24px; }
-            #printPreview .visit-meta-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #f8fafc; }
-            #printPreview .visit-meta-item { min-width: 0; display: flex; gap: 6px; align-items: baseline; font-size: 13px; color: #111827; }
-            #printPreview .visit-meta-item span { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
-            #printPreview .visit-meta-item strong { overflow-wrap: anywhere; font-weight: 800; }
-            #printPreview .visit-note-sections h2:first-child { margin-top: 12px; }
-            #printPreview .patient-name { margin: 0 0 8px; color: #000000; font-size: 22px; font-weight: 900; text-transform: uppercase; }
-            #printPreview .patient-meta { margin-bottom: 24px; color: #000000; font-size: 13px; }
-            #printPreview .rx-list,
-            #printPreview .instruction-list { display: grid; gap: 14px; }
-            #printPreview .rx-item,
-            #printPreview .instruction-item { display: grid; grid-template-columns: 22px 1fr; column-gap: 10px; color: #000000; font-size: 14px; line-height: 1.45; }
-            #printPreview .rx-number { font-weight: 800; }
-            #printPreview .medicine-main strong { font-size: 15px; }
-            #printPreview .medicine-instruction { margin-top: 2px; }
-            #printPreview .medicine-malayalam { margin-top: 4px; font-size: 12px; }
-            #printPreview .clinical-block { margin: 0 0 20px; }
-            #printPreview .clinical-heading { margin: 20px 0 10px; color: #004270; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; }
-            #printPreview .clinical-block:first-child .clinical-heading { margin-top: 0; }
-            #printPreview .clinical-report-title,
-            #printPreview .clinical-numbered-row { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; margin: 0 0 4px; color: #111827; font-size: 15px; line-height: 1.45; }
-            #printPreview .clinical-report-title span,
-            #printPreview .clinical-numbered-row span { color: #111827; text-align: left; }
-            #printPreview .clinical-investigations { margin-left: 0; }
-            #printPreview .clinical-finding-row { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; margin: 1px 0 1px 30px; color: #111827; font-size: 15px; line-height: 1.45; }
-            #printPreview .clinical-finding-row div::before { content: "- "; }
-            #printPreview .clinical-rx-list { gap: 12px; }
-            #printPreview .clinical-rx-item,
-            #printPreview .visit-rx-item { grid-template-columns: 22px 1fr; column-gap: 8px; }
-            #printPreview .clinical-instruction-list,
-            #printPreview .visit-instruction-list { margin-top: 12px; gap: 6px; }
-            #printPreview .template-divider { margin-top: 28px; border-top: 1px solid #9ca3af; }
-            #printPreview .template-emergency { margin: 14px 0 0; color: #000000; font-size: 11px; line-height: 1.25; }
-            #printPreview .print-credentials { margin-top: 5cm; padding-top: 0; white-space: normal; text-align: left; font-size: 12px; color: #000000; line-height: 1.25; }
-            #printPreview .print-credentials .print-header-size-small { font-size: 11px; }
-            #printPreview .print-credentials .print-header-size-medium { font-size: 12px; }
-            #printPreview .print-credentials .print-header-size-large { font-size: 14px; }
-            #printPreview .print-credentials.reply-credentials { margin-top: 5cm; }
-            #printPreview .reply-letter { white-space: normal; font-size: 15px; line-height: 1.65; text-align: left; }
-            #printPreview .reply-to { margin-bottom: 4px; }
-            #printPreview .reply-recipient { margin-bottom: 18px; }
-            #printPreview .reply-letter-body { margin-top: 0; }
-            #printPreview .reply-thanks { margin-top: 1em; }
-            #printPreview .certificate-page { padding-top: 72px; }
-            #printPreview .certificate-date { text-align: right; margin-bottom: 48px; font-size: 15px; }
-            #printPreview .certificate-title { text-align: center; color: #111827; text-transform: uppercase; text-decoration: underline; letter-spacing: .04em; margin-bottom: 36px; font-size: 22px; }
-            #printPreview .certificate-body { white-space: normal; font-size: 16px; line-height: 1.8; text-align: justify; margin-top: 12px; }
-            #printPreview .certificate-thanks { margin-top: 42px; font-size: 15px; }
-            @media (max-width: 720px) {
-              #printPreview .print-toolbar { padding: 12px 14px; }
-              #printPreview .print-page { width: min(96vw, 720px) !important; }
-              #printPreview .print-template { min-height: 980px; }
-              #printPreview .template-content { padding: 18px 18px 24px; }
-              #printPreview .visit-meta-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            }
-            @media print {
-              body > *:not(#printPreview) { display: none !important; }
-              #printPreview { display: block !important; position: static !important; overflow: visible !important; background: #ffffff !important; padding: 0 !important; }
-              #printPreview .print-toolbar { display: none !important; }
-              #printPreview .print-page { margin: 0 !important; width: auto !important; box-shadow: none !important; }
-              #printPreview .print-template { min-height: 100vh; }
-              #printPreview .template-header { padding: 10mm 12mm; min-height: 34mm; }
-              #printPreview .template-content { padding: 8mm 12mm 0; }
-              #printPreview .visit-meta-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-            }
+            ${printPreviewCss()}
           </style>
           <div class="print-toolbar">
             <button class="back-button" type="button">Back</button>
@@ -3918,11 +3946,11 @@
     function visitNoteEmailPayload(to) {
       const fields = activeVisitFields();
       const patientIds = new Set(["patientName", "patientAge", "patientSex", "patientUhid"]);
-      const sections = fields
+      const sectionPairs = fields
         .filter(([, id]) => !patientIds.has(id))
         .map(([title, id]) => [title, document.getElementById(id).value.trim()])
-        .filter(([, value]) => value && value.toUpperCase() !== "NIL")
-        .map(([title, value]) => ({ title, value }));
+        .filter(([, value]) => value && value.toUpperCase() !== "NIL");
+      const sections = sectionPairs.map(([title, value]) => ({ title, value }));
       return {
         to,
         deviceId: deviceId(),
@@ -3936,12 +3964,16 @@
         sections,
         doctorCredentials: getDoctorCredentials(),
         printHeaderHtml: getPrintHeaderSettings().html,
+        printHtml: printableEmailHtml({ title: "Visit Note", sections: sectionPairs, visitNote: true }),
         generatedAt: new Date().toISOString()
       };
     }
 
     function dictationEmailPayload(to) {
       const title = textResultTitle();
+      const options = state.resultMode === "replyLetter"
+        ? { title, replyLetter: true }
+        : { title, sections: [[title, document.getElementById("dictationText").value.trim()]] };
       return {
         to,
         deviceId: deviceId(),
@@ -3950,6 +3982,7 @@
         sections: [{ title, value: document.getElementById("dictationText").value.trim() }],
         doctorCredentials: getDoctorCredentials(),
         printHeaderHtml: getPrintHeaderSettings().html,
+        printHtml: printableEmailHtml(options),
         generatedAt: new Date().toISOString()
       };
     }
@@ -3972,6 +4005,7 @@
         doctorCredentials: getDoctorCredentials(),
         printHeaderHtml: getPrintHeaderSettings().html,
         footnote: getPrescriptionFootnote(),
+        printHtml: printableEmailHtml({ title: "Prescription", prescription: true }),
         generatedAt: new Date().toISOString()
       };
     }
@@ -3985,6 +4019,7 @@
         sections: [{ title: "Medical Certificate", value: certificateBodyText() }],
         doctorCredentials: getDoctorCredentials(),
         printHeaderHtml: getPrintHeaderSettings().html,
+        printHtml: printableEmailHtml({ title: "Medical Certificate", certificate: true }),
         generatedAt: new Date().toISOString()
       };
     }

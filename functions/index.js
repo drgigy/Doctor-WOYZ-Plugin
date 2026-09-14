@@ -1,5 +1,8 @@
 const admin = require("firebase-admin");
+const chromium = require("@sparticuz/chromium");
+const fs = require("fs");
 const PDFDocument = require("pdfkit");
+const puppeteer = require("puppeteer-core");
 const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 
@@ -10,6 +13,8 @@ const EMAIL_FROM = "Doctor WOYZ <notes@woyz.in>";
 const ADMIN_EMAILS = new Set(["drgigy@gmail.com"]);
 const FONT_REGULAR = require.resolve("@fontsource/noto-sans-malayalam/files/noto-sans-malayalam-malayalam-400-normal.woff");
 const FONT_BOLD = require.resolve("@fontsource/noto-sans-malayalam/files/noto-sans-malayalam-malayalam-700-normal.woff");
+const FONT_REGULAR_DATA_URI = `data:font/woff;base64,${fs.readFileSync(FONT_REGULAR).toString("base64")}`;
+const FONT_BOLD_DATA_URI = `data:font/woff;base64,${fs.readFileSync(FONT_BOLD).toString("base64")}`;
 const ALLOWED_ORIGINS = new Set([
   "https://doctor.woyz.in",
   "https://drgigy.github.io",
@@ -191,6 +196,61 @@ function makePdf(payload) {
   });
 }
 
+function injectPdfFonts(html) {
+  const fontCss = `
+    <style>
+      @font-face {
+        font-family: "Noto Sans Malayalam";
+        font-style: normal;
+        font-weight: 400;
+        src: url("${FONT_REGULAR_DATA_URI}") format("woff");
+      }
+      @font-face {
+        font-family: "Noto Sans Malayalam";
+        font-style: normal;
+        font-weight: 700;
+        src: url("${FONT_BOLD_DATA_URI}") format("woff");
+      }
+      body, #printPreview {
+        font-family: Arial, "Noto Sans Malayalam", sans-serif !important;
+      }
+    </style>
+  `;
+  const source = String(html || "");
+  if (source.includes("</head>")) return source.replace("</head>", `${fontCss}</head>`);
+  return `${fontCss}${source}`;
+}
+
+async function makePdfFromHtml(html) {
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setJavaScriptEnabled(false);
+    await page.setContent(injectPdfFonts(html), { waitUntil: "load" });
+    await page.emulateMediaType("print");
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" }
+    });
+    return Buffer.from(pdf);
+  } finally {
+    await browser.close();
+  }
+}
+
+async function makeEmailPdf(payload) {
+  const printHtml = cleanText(payload.printHtml);
+  if (printHtml) return makePdfFromHtml(printHtml);
+  return makePdf(payload);
+}
+
 function emailBody(payload) {
   const title = cleanText(payload.title, "Visit Note");
   const patient = payload.patient && typeof payload.patient === "object" ? payload.patient : {};
@@ -226,8 +286,8 @@ exports.sendVisitNoteEmailHttp = onRequest(
   {
     region: "asia-south1",
     secrets: [RESEND_API_KEY],
-    timeoutSeconds: 60,
-    memory: "256MiB"
+    timeoutSeconds: 120,
+    memory: "1GiB"
   },
   async (req, res) => {
     const origin = String(req.headers.origin || "");
@@ -248,7 +308,7 @@ exports.sendVisitNoteEmailHttp = onRequest(
       const to = normalizeEmail(payload.to);
       if (!to) throw Object.assign(new Error("A valid receiver email address is required."), { status: 400 });
 
-      const pdf = await makePdf(payload);
+      const pdf = await makeEmailPdf(payload);
       const safeTitle = cleanText(payload.title, "Visit Note").replace(/[^\w.-]+/g, "_").slice(0, 80);
       const resendResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
