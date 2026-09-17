@@ -1176,6 +1176,79 @@
       box-sizing: border-box;
     }
 
+    .remember-email-row {
+      display: flex !important;
+      align-items: center;
+      gap: 9px !important;
+      margin-top: 10px;
+      color: var(--muted) !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+    }
+
+    .email-dialog-panel .remember-email-row input {
+      width: auto;
+      margin: 0;
+      accent-color: var(--blue-dark);
+    }
+
+    .remembered-email-list {
+      display: grid;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .remembered-email-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      border: 1px solid #dbe4ef;
+      border-radius: 10px;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+
+    .remembered-email-select {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font: 700 13px var(--font-family);
+      padding: 8px 10px;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .remembered-email-chip:hover,
+    .remembered-email-chip:focus-within {
+      border-color: #93c5fd;
+      background: #eef6ff;
+    }
+
+    .remembered-email-select:focus {
+      outline: none;
+    }
+
+    .remembered-email-remove {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font: 900 13px var(--font-family);
+      padding: 8px 10px;
+    }
+
+    .remembered-email-remove:hover,
+    .remembered-email-remove:focus {
+      color: #b42318;
+      outline: none;
+    }
+
     .email-dialog-actions {
       display: flex;
       justify-content: flex-end;
@@ -2107,6 +2180,11 @@
           Receiver email address
           <input id="emailRecipientInput" type="email" inputmode="email" autocomplete="email" placeholder="patient@example.com">
         </label>
+        <label class="remember-email-row" for="rememberEmailCheckbox">
+          <input id="rememberEmailCheckbox" type="checkbox">
+          Remember this email on this browser
+        </label>
+        <div class="remembered-email-list" id="rememberedEmailList" hidden></div>
         <p class="email-dialog-status" id="emailDialogStatus"></p>
         <div class="email-dialog-actions">
           <button class="copy-button" id="cancelEmailButton" type="button">Cancel</button>
@@ -2178,6 +2256,7 @@
     const DOCTOR_CREDENTIALS_STORAGE_KEY = "doctor_woyz_doctor_credentials";
     const DOCTOR_CREDENTIALS_HTML_STORAGE_KEY = "doctor_woyz_doctor_credentials_html";
     const PRESCRIPTION_FOOTNOTE_STORAGE_KEY = "doctor_woyz_prescription_footnote";
+    const REMEMBERED_EMAILS_STORAGE_KEY = "doctor_woyz_remembered_emails";
     const DEFAULT_PRESCRIPTION_FOOTNOTE = "If you develop any rash, breathing difficulty, swelling, severe allergy symptoms, or any unexpected reaction, please contact us immediately or get urgent medical attention.";
 
     const state = {
@@ -4042,6 +4121,57 @@
         </html>`;
     }
 
+    function normalizeEmailBodyText(value) {
+      return String(value || "")
+        .replace(/\r\n?/g, "\n")
+        .split("\n")
+        .map(line => line.trim())
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+    }
+
+    function usefulEmailValue(value) {
+      const text = normalizeEmailBodyText(value);
+      return text && text.toUpperCase() !== "NIL" ? text : "";
+    }
+
+    function emailBodyText({ title, patient = {}, sections = [], footnote = "", doctorCredentials = "" }) {
+      const lines = [];
+      const header = htmlToPlainText(getPrintHeaderSettings().html);
+      if (header) lines.push(header, "");
+      lines.push(normalizeEmailBodyText(title || "Visit Note"), "");
+
+      const patientLines = [
+        ["Date", patient.date],
+        ["Name", patient.name],
+        ["Age", patient.age],
+        ["Sex", patient.sex],
+        ["UHID", patient.uhid]
+      ]
+        .map(([label, value]) => [label, usefulEmailValue(value)])
+        .filter(([, value]) => value)
+        .map(([label, value]) => `${label}: ${value}`);
+      if (patientLines.length) lines.push(patientLines.join("\n"), "");
+
+      sections.forEach(section => {
+        const heading = normalizeEmailBodyText(section.title);
+        const value = usefulEmailValue(section.value);
+        if (!heading && !value) return;
+        if (heading) lines.push(heading.toUpperCase());
+        if (value) lines.push(value);
+        lines.push("");
+      });
+
+      const cleanFootnote = usefulEmailValue(footnote);
+      if (cleanFootnote) lines.push("NOTE", cleanFootnote, "");
+
+      const cleanCredentials = usefulEmailValue(doctorCredentials);
+      if (cleanCredentials) lines.push(cleanCredentials);
+
+      return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    }
+
     function printDocument(options) {
       const { title, autoPrint = true } = options;
       const printableBody = printDocumentBodyHtml(options);
@@ -4114,38 +4244,45 @@
         .map(([title, id]) => [title, document.getElementById(id).value.trim()])
         .filter(([, value]) => value && value.toUpperCase() !== "NIL");
       const sections = sectionPairs.map(([title, value]) => ({ title, value }));
+      const patient = {
+        name: document.getElementById("patientName").value.trim(),
+        age: document.getElementById("patientAge").value.trim(),
+        sex: document.getElementById("patientSex").value.trim(),
+        uhid: document.getElementById("patientUhid").value.trim()
+      };
+      const doctorCredentials = getDoctorCredentials();
       return {
         to,
         deviceId: deviceId(),
         title: "Visit Note",
-        patient: {
-          name: document.getElementById("patientName").value.trim(),
-          age: document.getElementById("patientAge").value.trim(),
-          sex: document.getElementById("patientSex").value.trim(),
-          uhid: document.getElementById("patientUhid").value.trim()
-        },
+        patient,
         sections,
-        doctorCredentials: getDoctorCredentials(),
+        doctorCredentials,
         printHeaderHtml: getPrintHeaderSettings().html,
         printHtml: printableEmailHtml({ title: "Visit Note", sections: sectionPairs, visitNote: true }),
+        bodyText: emailBodyText({ title: "Visit Note", patient, sections, doctorCredentials }),
         generatedAt: new Date().toISOString()
       };
     }
 
     function dictationEmailPayload(to) {
       const title = textResultTitle();
+      const value = document.getElementById("dictationText").value.trim();
       const options = state.resultMode === "replyLetter"
         ? { title, replyLetter: true }
-        : { title, sections: [[title, document.getElementById("dictationText").value.trim()]] };
+        : { title, sections: [[title, value]] };
+      const sections = [{ title, value }];
+      const doctorCredentials = getDoctorCredentials();
       return {
         to,
         deviceId: deviceId(),
         title,
         patient: {},
-        sections: [{ title, value: document.getElementById("dictationText").value.trim() }],
-        doctorCredentials: getDoctorCredentials(),
+        sections,
+        doctorCredentials,
         printHeaderHtml: getPrintHeaderSettings().html,
         printHtml: printableEmailHtml(options),
+        bodyText: emailBodyText({ title, sections, doctorCredentials }),
         generatedAt: new Date().toISOString()
       };
     }
@@ -4153,36 +4290,45 @@
     function prescriptionEmailPayload(to) {
       const medicationBox = document.getElementById("prescriptionMedications");
       medicationBox.value = numberPrescriptionText(medicationBox.value);
+      const patient = {
+        date: document.getElementById("prescriptionDate").value.trim(),
+        name: document.getElementById("prescriptionName").value.trim(),
+        age: document.getElementById("prescriptionAge").value.trim(),
+        sex: document.getElementById("prescriptionSex").value.trim(),
+        uhid: document.getElementById("prescriptionUhid").value.trim()
+      };
+      const sections = [{ title: "Rx / Advice", value: medicationBox.value.trim() }];
+      const doctorCredentials = getDoctorCredentials();
+      const footnote = getPrescriptionFootnote();
       return {
         to,
         deviceId: deviceId(),
         title: "Prescription",
-        patient: {
-          date: document.getElementById("prescriptionDate").value.trim(),
-          name: document.getElementById("prescriptionName").value.trim(),
-          age: document.getElementById("prescriptionAge").value.trim(),
-          sex: document.getElementById("prescriptionSex").value.trim(),
-          uhid: document.getElementById("prescriptionUhid").value.trim()
-        },
-        sections: [{ title: "Rx / Advice", value: medicationBox.value.trim() }],
-        doctorCredentials: getDoctorCredentials(),
+        patient,
+        sections,
+        doctorCredentials,
         printHeaderHtml: getPrintHeaderSettings().html,
-        footnote: getPrescriptionFootnote(),
+        footnote,
         printHtml: printableEmailHtml({ title: "Prescription", prescription: true }),
+        bodyText: emailBodyText({ title: "Prescription", patient, sections, footnote, doctorCredentials }),
         generatedAt: new Date().toISOString()
       };
     }
 
     function certificateEmailPayload(to) {
+      const patient = { date: document.getElementById("certificateDate").value.trim() };
+      const sections = [{ title: "Medical Certificate", value: certificateBodyText() }];
+      const doctorCredentials = getDoctorCredentials();
       return {
         to,
         deviceId: deviceId(),
         title: "Medical Certificate",
-        patient: { date: document.getElementById("certificateDate").value.trim() },
-        sections: [{ title: "Medical Certificate", value: certificateBodyText() }],
-        doctorCredentials: getDoctorCredentials(),
+        patient,
+        sections,
+        doctorCredentials,
         printHeaderHtml: getPrintHeaderSettings().html,
         printHtml: printableEmailHtml({ title: "Medical Certificate", certificate: true }),
+        bodyText: emailBodyText({ title: "Medical Certificate", patient, sections, doctorCredentials }),
         generatedAt: new Date().toISOString()
       };
     }
@@ -4192,6 +4338,85 @@
       if (state.resultMode === "medicalCertificate") return certificateEmailPayload(to);
       if (["reviewDictation", "visitPrescription", "replyLetter"].includes(state.resultMode)) return dictationEmailPayload(to);
       return visitNoteEmailPayload(to);
+    }
+
+    function normalizeRememberedEmail(value) {
+      return String(value || "").trim().toLowerCase();
+    }
+
+    function getRememberedEmails() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(REMEMBERED_EMAILS_STORAGE_KEY) || "[]");
+        if (!Array.isArray(parsed)) return [];
+        const seen = new Set();
+        return parsed
+          .map(normalizeRememberedEmail)
+          .filter(email => validEmailAddress(email) && !seen.has(email) && seen.add(email))
+          .slice(0, 12);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function setRememberedEmails(emails) {
+      const seen = new Set();
+      const cleanEmails = emails
+        .map(normalizeRememberedEmail)
+        .filter(email => validEmailAddress(email) && !seen.has(email) && seen.add(email))
+        .slice(0, 12);
+      try {
+        localStorage.setItem(REMEMBERED_EMAILS_STORAGE_KEY, JSON.stringify(cleanEmails));
+      } catch (error) {
+        console.warn("Remembered email storage failed:", error);
+      }
+    }
+
+    function filteredRememberedEmails(query) {
+      const cleanQuery = normalizeRememberedEmail(query);
+      const emails = getRememberedEmails();
+      if (!cleanQuery) return emails;
+      const startsWith = emails.filter(email => email.startsWith(cleanQuery));
+      const contains = emails.filter(email => !email.startsWith(cleanQuery) && email.includes(cleanQuery));
+      return [...startsWith, ...contains];
+    }
+
+    function renderRememberedEmailSuggestions() {
+      const input = document.getElementById("emailRecipientInput");
+      const list = document.getElementById("rememberedEmailList");
+      const emails = filteredRememberedEmails(input.value);
+      if (!emails.length) {
+        list.hidden = true;
+        list.innerHTML = "";
+        return;
+      }
+      list.hidden = false;
+      list.innerHTML = emails.map(email => `
+        <div class="remembered-email-chip">
+          <button class="remembered-email-select" type="button" data-remembered-email="${escapeHtml(email)}">${escapeHtml(email)}</button>
+          <button class="remembered-email-remove" type="button" data-remove-remembered-email="${escapeHtml(email)}" aria-label="Remove ${escapeHtml(email)}">x</button>
+        </div>
+      `).join("");
+    }
+
+    function selectRememberedEmail(email) {
+      const input = document.getElementById("emailRecipientInput");
+      input.value = normalizeRememberedEmail(email);
+      updateEmailSendButton();
+      renderRememberedEmailSuggestions();
+      input.focus();
+    }
+
+    function rememberEmailAddress(email) {
+      const cleanEmail = normalizeRememberedEmail(email);
+      if (!validEmailAddress(cleanEmail)) return;
+      setRememberedEmails([cleanEmail, ...getRememberedEmails().filter(item => item !== cleanEmail)]);
+      renderRememberedEmailSuggestions();
+    }
+
+    function removeRememberedEmail(email) {
+      const cleanEmail = normalizeRememberedEmail(email);
+      setRememberedEmails(getRememberedEmails().filter(item => item !== cleanEmail));
+      renderRememberedEmailSuggestions();
     }
 
     function updateEmailSendButton() {
@@ -4204,11 +4429,14 @@
       const dialog = document.getElementById("emailDialog");
       const input = document.getElementById("emailRecipientInput");
       const sendButton = document.getElementById("sendEmailButton");
+      const rememberCheckbox = document.getElementById("rememberEmailCheckbox");
       const status = document.getElementById("emailDialogStatus");
       status.textContent = "";
       status.className = "email-dialog-status";
       input.value = "";
+      rememberCheckbox.checked = false;
       sendButton.disabled = true;
+      renderRememberedEmailSuggestions();
       dialog.hidden = false;
       setTimeout(() => input.focus(), 50);
     }
@@ -4242,6 +4470,7 @@
           idToken,
           payload: currentEmailPayload(to)
         });
+        if (document.getElementById("rememberEmailCheckbox").checked) rememberEmailAddress(to);
         status.textContent = "Email sent successfully.";
         status.classList.add("success");
         setTimeout(closeEmailDialog, 1200);
@@ -4420,10 +4649,33 @@
     document.getElementById("cancelEmailButton").addEventListener("click", closeEmailDialog);
     document.getElementById("sendEmailButton").addEventListener("click", sendCurrentVisitNoteEmail);
     document.getElementById("emailRecipientInput").addEventListener("keydown", event => {
-      if (event.key === "Enter") sendCurrentVisitNoteEmail();
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const input = event.currentTarget;
+        const typedEmail = normalizeRememberedEmail(input.value);
+        const matches = filteredRememberedEmails(input.value);
+        if (matches.length && typedEmail !== matches[0] && !validEmailAddress(input.value)) {
+          selectRememberedEmail(matches[0]);
+          return;
+        }
+        sendCurrentVisitNoteEmail();
+      }
       if (event.key === "Escape") closeEmailDialog();
     });
-    document.getElementById("emailRecipientInput").addEventListener("input", updateEmailSendButton);
+    document.getElementById("emailRecipientInput").addEventListener("input", () => {
+      updateEmailSendButton();
+      renderRememberedEmailSuggestions();
+    });
+    document.getElementById("rememberedEmailList").addEventListener("click", event => {
+      const removeTarget = event.target.closest("[data-remove-remembered-email]");
+      if (removeTarget) {
+        event.stopPropagation();
+        removeRememberedEmail(removeTarget.dataset.removeRememberedEmail);
+        return;
+      }
+      const emailTarget = event.target.closest("[data-remembered-email]");
+      if (emailTarget) selectRememberedEmail(emailTarget.dataset.rememberedEmail);
+    });
     document.getElementById("emailDialog").addEventListener("click", event => {
       if (event.target.id === "emailDialog") closeEmailDialog();
     });

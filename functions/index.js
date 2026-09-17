@@ -254,6 +254,8 @@ async function makeEmailPdf(payload) {
 }
 
 function emailBody(payload) {
+  const bodyText = cleanText(payload.bodyText);
+  if (bodyText) return bodyText;
   const title = cleanText(payload.title, "Visit Note");
   const patient = payload.patient && typeof payload.patient === "object" ? payload.patient : {};
   const name = cleanText(patient.name);
