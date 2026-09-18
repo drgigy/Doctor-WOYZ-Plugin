@@ -17,6 +17,7 @@ const FONT_REGULAR_DATA_URI = `data:font/woff;base64,${fs.readFileSync(FONT_REGU
 const FONT_BOLD_DATA_URI = `data:font/woff;base64,${fs.readFileSync(FONT_BOLD).toString("base64")}`;
 const ALLOWED_ORIGINS = new Set([
   "https://doctor.woyz.in",
+  "https://notes.woyz.in",
   "https://drgigy.github.io",
   "http://localhost:8000",
   "http://127.0.0.1:8000"
