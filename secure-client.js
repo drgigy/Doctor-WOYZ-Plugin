@@ -33,7 +33,7 @@ const REPORT_FIELD_DESCRIPTIONS = {
   currentMedication: "Only medicines described as already being taken, one numbered medicine per line, otherwise NIL.",
   provisionalDiagnosis: "Most likely working or provisional diagnosis clearly supported by the complete consultation, investigation review, or doctor assessment. It need not be introduced by the words provisional diagnosis. Do not guess from isolated symptoms, medications, or general medical knowledge. Use NIL when unsupported.",
   treatmentPlan: "Plan, advice, orders, referral, follow-up, monitoring, reassurance, or conservative management clearly supported by the consultation. It need not be introduced by the words treatment plan. Do not put explicitly dictated prescription medicines here; use prescription. Never invent drug changes, procedures, investigations, or follow-up. Use NIL when unsupported.",
-  prescription: "Only medicines explicitly dictated as prescription, newly prescribed, started, changed, or explicitly continued as a prescription. Use numbered medicine entries with medicine name and dose, English patient instruction, and Malayalam translation of the instruction only below. Do not repeat the medicine name in the Malayalam line. Use NIL when unsupported."
+  prescription: "Only medicines explicitly dictated as prescription, newly prescribed, started, changed, or explicitly continued as a prescription. Use numbered medicine entries with medicine name, dose, and English patient instruction only. Translate Malayalam or Manglish instructions into English; do not add Malayalam instruction lines. Use NIL when unsupported."
 };
 
 const REPORT_SCHEMA = {
@@ -78,7 +78,7 @@ const PRESCRIPTION_SCHEMA = {
     patientAge: { type: "string", description: "Patient age exactly as spoken, otherwise NIL." },
     patientSex: { type: "string", description: "Patient sex or gender exactly as spoken, otherwise NIL." },
     patientUhid: { type: "string", description: "UHID exactly as spoken, otherwise NIL." },
-    medicationsAdvised: { type: "string", description: "Only explicitly dictated medications, advice, investigations, and follow-up. Use the same style as the embedded Visit + Prescription Prescription section: Medications: with numbered medicine lines and Malayalam instruction-only lines, then Advice: for review/investigation/follow-up instructions. Never repeat the medicine name in Malayalam instruction lines. Never infer missing details." }
+    medicationsAdvised: { type: "string", description: "Only explicitly dictated medications, advice, investigations, and follow-up. Use the same style as the embedded Visit + Prescription Prescription section: Medications: with numbered medicine lines containing English patient instructions only, then Advice: for review/investigation/follow-up instructions. Translate Malayalam or Manglish instructions into English; do not add Malayalam instruction lines. Never infer missing details." }
   },
   required: PRESCRIPTION_FIELDS
 };
@@ -214,11 +214,10 @@ Formatting rules:
 - prescription: numbered list. For each medicine, write the medicine name and
   dose on the numbered line. On the next line write the English patient
   instruction exactly as dictated, for example "Take one tablet at bedtime for
-  one month." On the next line write the Malayalam translation of that
-  instruction only. Do not repeat the medicine name in the Malayalam line.
-  Preserve brand names and doses exactly in English. If dose is not dictated,
-  still include the medicine name. Do not invent dose, route, frequency, or
-  duration.
+  one month." Do not add a Malayalam instruction line. If the instruction is
+  dictated in Malayalam or Manglish, translate it into English. Preserve brand
+  names and doses exactly in English. If dose is not dictated, still include
+  the medicine name. Do not invent dose, route, frequency, or duration.
 - If investigations, lab tests, imaging, EEG, NCS, scans, or follow-up tests
   are ordered, include them in treatmentPlan line by line.
 
@@ -400,16 +399,12 @@ Formatting rules:
   Medications:
   1. Tablet/Cap/Syrup/Inj brand name dose - clear English patient instruction
      with timing, duration, and food/administration instruction.
-     Malayalam patient instruction only, without repeating medicine name or dose.
   Advice:
   - Review/follow-up/investigation instructions line by line
-- Do not write the word "Malayalam" before the Malayalam text. Put the
-  Malayalam instruction directly below the English instruction.
 - For each prescription medicine, keep the medicine name and dose as the first
-  part of the English line, then write a clear English instruction. Directly
-  below it, write only the same patient-facing instruction in Malayalam when
-  possible. Do not repeat the medicine name, brand name, or dose in the
-  Malayalam line.
+  part of the English line, then write one clear English patient instruction.
+  If the instruction is dictated in Malayalam or Kerala Manglish, translate it
+  into English. Do not add any Malayalam instruction line.
 - Do not put advice such as "continue medicines", "review after one month", or
   investigation advice as numbered medicine rows.
 - For each medication, keep brand name and dose clear. Put timing, duration,
@@ -421,14 +416,6 @@ Formatting rules:
 - In English prescription instructions, write duration in numeric form only,
   for example "1 month", "10 days", "2 weeks". Do not write "one month", "one
   more month", "for one more month", or vague words like "more" or "less".
-- In Malayalam patient instruction lines, spell general counts and durations in
-  Malayalam words instead of English numerals when possible, especially at the
-  start of a line or sentence. Examples: "1 tablet" -> "ഒരു ഗുളിക", "10 days"
-  -> "പത്ത് ദിവസം", "20 days" -> "ഇരുപത് ദിവസം", "1 month" -> "ഒരു മാസം",
-  "2 weeks" -> "രണ്ട് ആഴ്ച".
-- Malayalam instruction lines must contain only the translated patient
-  instruction. Do not include drug names or doses there; they are already shown
-  in the English medicine line.
 - If one duration is dictated for a group of medicines, repeat that duration in
   every medication line. Do not leave duration implicit or blank for any
   prescribed medicine when a shared duration was spoken.
@@ -444,8 +431,8 @@ Formatting rules:
 - For tapering or step-down prescriptions, create one numbered medication entry
   for each step. Repeat the same medicine name in each entry. Write the phase
   clearly in the instruction, for example "First 20 days", "Next 20 days",
-  "Next 20 days, then stop". Put the Malayalam version directly below each
-  English tapering instruction without any label.
+  "Next 20 days, then stop". Do not add Malayalam versions of tapering
+  instructions.
 - If a lab appointment, investigation schedule, paper/lab schedule, imaging,
   EEG, NCS, CT, MRI, blood test, or any investigation order is dictated,
   include it under Prescription > Advice line by line, even if it is also
@@ -504,18 +491,14 @@ Rules:
   Medications:
   1. Tablet/Cap/Syrup/Inj brand name dose - clear English patient instruction
      with timing, duration, and food/administration instruction.
-     Malayalam patient instruction only, without repeating medicine name or dose.
   Advice:
   - Review/follow-up/investigation instructions line by line
 - Do not combine section headings and content into one continuous sentence.
 - Do not write "Prescription:" inside medicationsAdvised.
-- Do not write the word "Malayalam" before the Malayalam text. Put the
-  Malayalam instruction directly below the English instruction.
 - For each prescription medicine, keep the medicine name and dose as the first
-  part of the English line, then write a clear English instruction. Directly
-  below it, write only the same patient-facing instruction in Malayalam when
-  possible. Do not repeat the medicine name, brand name, or dose in the
-  Malayalam line.
+  part of the English line, then write one clear English patient instruction.
+  If the instruction is dictated in Malayalam or Kerala Manglish, translate it
+  into English. Do not add any Malayalam instruction line.
 - Do not put advice such as "continue medicines", "review after one month", or
   investigation advice as numbered medicine rows.
 - If investigations, lab tests, imaging, EEG/NCS, scans, or follow-up tests are
@@ -529,10 +512,6 @@ Rules:
 - In English prescription instructions, write duration in numeric form only,
   for example "1 month", "10 days", "2 weeks". Do not write "one month", "one
   more month", "for one more month", or vague words like "more" or "less".
-- In Malayalam patient instruction lines, spell general counts and durations in
-  Malayalam words instead of English numerals when possible, especially at the
-  start of a line or sentence. Examples: "1 tablet" -> "ഒരു ഗുളിക", "10 days"
-  -> "പത്ത് ദിവസം", "1 month" -> "ഒരു മാസം".
 - Always write tablet medicines as "Tablet", not "Tab".
 - If only the word evening is dictated without a clock time, write it as night.
 - Do not use internal labels like "morning:", "noon:", "night:", "Duration:",
