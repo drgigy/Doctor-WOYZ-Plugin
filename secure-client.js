@@ -672,6 +672,17 @@ function instructionStartIndex(text) {
   return match > 0 ? match : -1;
 }
 
+function isPrescriptionMedicineLine(line) {
+  const text = String(line || "").trim();
+  if (!text || /^(take|use|apply|instill|continue|once|twice|thrice|one|two|three|half|sos|at|in|for|before|after|morning|night|bedtime|noon)\b/i.test(text)) {
+    return false;
+  }
+  if (/^(tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syp|syrup|inj|injection|cream|ointment|drops?)\b/i.test(text)) {
+    return true;
+  }
+  return /^[A-Za-z][A-Za-z0-9 +-]*(?:\s+\d+(?:\s*(?:mg|mcg|g|ml|units?|iu|%)\b)|\s+\d+\s*\/\s*\d+\b)/i.test(text);
+}
+
 function medicineNameCandidates(medicineLine) {
   const cleanLine = String(medicineLine || "")
     .replace(/^\d+[\.)]\s*/, "")
@@ -720,7 +731,7 @@ function numberPrescriptionItems(text) {
     .filter(Boolean)
     .map(line => {
       const hasMalayalam = /[\u0D00-\u0D7F]/.test(line);
-      const isMedicine = /^(tab|tabs|tablet|tablets|cap|caps|capsule|capsules|syp|syrup|inj|injection|cream|ointment|drops?)\b/i.test(line);
+      const isMedicine = isPrescriptionMedicineLine(line);
       if (hasMalayalam) return removeMedicineNameFromMalayalamInstruction(line, currentMedicineLine);
       if (isMedicine) {
         currentMedicineLine = line;
